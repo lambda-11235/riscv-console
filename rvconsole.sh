@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/usr/bin/env bash
 
 # Check that base image exists
 IMAGE_BASE="riscv_base"

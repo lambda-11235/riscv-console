@@ -22,7 +22,7 @@ DEFINES  += -DDEBUG
 CFLAGS   += -g -ggdb -D_GLIBCXX_DEBUG
 #LDFLAGS  += -Wl,-no_pie
 else 
-CFLAGS   += -O3
+CFLAGS   += -O3 -lpthread
 endif
 
 INCLUDE  += -I $(INC_DIR)
