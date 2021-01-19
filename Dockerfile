@@ -1,8 +1,12 @@
 FROM riscv_base
 
-RUN apt-get update && apt-get install libgtk-3-dev dbus-x11 -y
+RUN apt-get update && apt-get install sudo libgtk-3-dev dbus-x11 -y
 
-COPY . /code/
+# Add user so that container does not run as root 
+RUN useradd -m docker 
+
+COPY . /code
 WORKDIR /code
+
 
 CMD ["/bin/bash"]
