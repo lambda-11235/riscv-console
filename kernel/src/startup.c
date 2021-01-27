@@ -34,8 +34,7 @@ void init(void){
 
     // FIXME: Video interrupts freeze program due to too high of freq
     INTERRUPT_ENABLE = 5;
-    INTERRUPT_PENDING = 0;
-    
+
     MTIMECMP_LOW = 1;
     MTIMECMP_HIGH = 0;
 }

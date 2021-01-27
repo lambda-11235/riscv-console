@@ -16,7 +16,7 @@ MEMORY
     RAM (rwx)   : ORIGIN = 0x70000000, LENGTH = 16M
     
 }
-ENTRY(_start)
+ENTRY(main)
 SEARCH_DIR("/opt/riscv32/riscv32-unknown-elf/lib");
 SECTIONS
 {

@@ -1,20 +1,55 @@
+#include <stdlib.h>
 #include <stdint.h>
 
 #include "registers.h"
 
-volatile char *CARTRIDGE_MEMORY = (volatile char *)(0x20000000);
 volatile char *VIDEO_MEMORY = (volatile char *)(0x50000000 + 0xFE800);
 const unsigned int TEXT_HEIGHT = 36;
 const unsigned int TEXT_WIDTH = 64;
+
+const int (*CARTRIDGE)(void) = (int (*)(void))(0x20000000);
+volatile int start_program = 0;
+volatile int program_running = 0;
 
 volatile uint32_t a07_regs[6];
 
 void handle_syscall(void);
 
 int main() {
-    asm("li a0, 0\n"
-        "ecall");
-    while(1) {}
+    uint32_t ret;
+    int i;
+
+    while(1) {
+        if (start_program) {
+            start_program = 0;
+            program_running = 1;
+            ret = CARTRIDGE();
+
+            for (int i = 0; i < TEXT_WIDTH; i++)
+                VIDEO_MEMORY[TEXT_WIDTH+i] = 0;
+
+            if (ret == 0)
+                VIDEO_MEMORY[TEXT_WIDTH-1] = '0';
+
+            for (int i = 0; ret > 0; i++) {
+                int32_t res = ret%16;
+                char dig;
+
+                if (res < 10)
+                    dig = '0' + res;
+                else
+                    dig = 'a' + res - 10;
+
+                VIDEO_MEMORY[3*TEXT_WIDTH - 1 - i] = dig;
+                ret /= 16;
+            }
+
+            for (i = 0; ret > 0; i++)
+
+            program_running = 0;
+        }
+    }
+
     return 0;
 }
 
@@ -41,22 +76,30 @@ void c_interrupt_handler(void){
     }
 
     if (ip & 1) {
-        VIDEO_MEMORY[0] = 'L';
-        // TODO: Load cartridge and run
-        uint32_t ret_code = ((int (*)(void)) CARTRIDGE_MEMORY)();
+        if (program_running) {
+            // TODO: cleanup
+        }
+
+        start_program = 1;
+
+        // Clear interrupt
+        INTERRUPT_PENDING &= 1;
     }
 
     if (ip & 2) {
         // TODO: Video interrupt
+
+        // Clear interrupt
+        INTERRUPT_PENDING &= 2;
     }
 
     if (ip & 4) {
         // TODO: CMD button press
+
+        // Clear interrupt
+        INTERRUPT_PENDING &= 4;
     }
 
-    // Reset interrupts
-    INTERRUPT_PENDING = 0;
-    
     /*if (mcause != 0x80000007) {
         if (mcause == 0)
             VIDEO_MEMORY[TEXT_WIDTH-1] = '0';
@@ -69,7 +112,7 @@ void c_interrupt_handler(void){
                 dig = '0' + res;
             else
                 dig = 'a' + res - 10;
-        
+
             VIDEO_MEMORY[3*TEXT_WIDTH - 1 - i] = dig;
             mcause /= 16;
         }
@@ -77,11 +120,9 @@ void c_interrupt_handler(void){
 }
 
 void handle_syscall(void) {
-    VIDEO_MEMORY[0] = 'S';
     switch (a07_regs[0]) {
     case 0: // exit
         // TODO
-        VIDEO_MEMORY[1] = 'E';
         break;
     }
 }
