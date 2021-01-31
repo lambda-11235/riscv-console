@@ -2,6 +2,8 @@
 #include <stdint.h>
 
 #include "registers.h"
+#include "util.h"
+#include "vfs.h"
 
 volatile char *VIDEO_MEMORY = (volatile char *)(0x50000000 + 0xFE800);
 const unsigned int TEXT_HEIGHT = 36;
@@ -15,9 +17,21 @@ volatile uint32_t a07_regs[6];
 
 void handle_syscall(void);
 
+extern struct entry sys_dev_video_mode_entry;
+struct entry* vfs_entry_lookup(const char* name);
+
 int main() {
     uint32_t ret;
-    int i;
+    int i, j;
+    struct entry* tmp;
+
+    file_system_init();
+    tmp = vfs_entry_lookup("/sys/dev/video/mode");
+
+    u32_to_str(VIDEO_MEMORY, tmp);
+    u32_to_str(VIDEO_MEMORY+TEXT_WIDTH, &sys_dev_video_mode_entry);
+
+    while(1) {}
 
     while(1) {
         if (start_program) {
@@ -25,26 +39,10 @@ int main() {
             program_running = 1;
             ret = CARTRIDGE();
 
-            for (int i = 0; i < TEXT_WIDTH; i++)
+            for (i = 0; i < TEXT_WIDTH; i++)
                 VIDEO_MEMORY[TEXT_WIDTH+i] = 0;
 
-            if (ret == 0)
-                VIDEO_MEMORY[TEXT_WIDTH-1] = '0';
-
-            for (int i = 0; ret > 0; i++) {
-                int32_t res = ret%16;
-                char dig;
-
-                if (res < 10)
-                    dig = '0' + res;
-                else
-                    dig = 'a' + res - 10;
-
-                VIDEO_MEMORY[3*TEXT_WIDTH - 1 - i] = dig;
-                ret /= 16;
-            }
-
-            for (i = 0; ret > 0; i++)
+            u32_to_str(VIDEO_MEMORY, ret);
 
             program_running = 0;
         }
