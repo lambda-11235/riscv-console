@@ -1,6 +1,7 @@
 #include <stdlib.h>
 #include <stdint.h>
 
+#include "fault.h"
 #include "registers.h"
 #include "util.h"
 #include "vfs.h"
@@ -17,21 +18,62 @@ volatile uint32_t a07_regs[6];
 
 void handle_syscall(void);
 
-extern struct entry sys_dev_video_mode_entry;
-struct entry* vfs_entry_lookup(const char* name);
 
 int main() {
     uint32_t ret;
     int i, j;
-    struct entry* tmp;
+    int mode_id;
+    int pal_id;
+    int controls_id;
+    int data_id;
+    volatile uint32_t* mode;
+    volatile uint32_t* palette;
+    volatile uint32_t* controls;
+    volatile uint8_t* data;
 
+
+    // This shows how to use the file system to interface with graphics.
+    // My idea is that a user level library will memmap to gain access to the pointers,
+    // and maintain the mapping for the life of the program.
     file_system_init();
-    tmp = vfs_entry_lookup("/sys/dev/video/mode");
 
-    u32_to_str(VIDEO_MEMORY, tmp);
-    u32_to_str(VIDEO_MEMORY+TEXT_WIDTH, &sys_dev_video_mode_entry);
+    mode_id = open("/sys/dev/video/mode", READ|WRITE);
+    if (mode_id == -1) fault("Could not open mode");
+    mode = memmap(mode_id, 0);
+    if (mode == NULL) fault("Could not memmap mode");
+
+    pal_id = open("/sys/dev/video/graphic/palette/background0", READ|WRITE);
+    if (pal_id == -1) fault("Could not open palette");
+    palette = memmap(pal_id, 0);
+    if (palette == NULL) fault("Could not memmap palette");
+
+    controls_id = open("/sys/dev/video/graphic/background0/control", READ|WRITE);
+    if (controls_id == -1) fault("Could not open controls");
+    controls = memmap(controls_id, 0);
+    if (controls == NULL) fault("Could not memmap controls");
+
+    data_id = open("/sys/dev/video/graphic/background0/data", READ|WRITE);
+    if (data_id == -1) fault("Could not open data");
+    data = memmap(data_id, 0);
+    if (data == NULL) fault("Could not memmap data");
+
+    *mode = 1;
+
+    for (i = 0; i < 256; i++)
+        palette[i] = 0x0000FFFF;
+
+    *controls = (288<<12) | (512 << 2);
+
+    for (i = 0; i < 147456; i++)
+        data[i] = 0;
+
+    close(mode_id);
+    close(pal_id);
+    close(controls_id);
+    close(data_id);
 
     while(1) {}
+
 
     while(1) {
         if (start_program) {

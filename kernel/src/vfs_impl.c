@@ -1,3 +1,7 @@
+/*
+ * This is actual virtual file system.
+ * It is implemented in memory for now.
+ */
 
 #include "vfs.h"
 
@@ -43,6 +47,7 @@ int init_raw_file_entry(struct entry* ent, char* name, uint8_t* data, size_t len
         .data = (void*) data,
         .length = length,
         .pos = 0,
+        .memmap = raw_memmap,
         .read = raw_read,
         .write = raw_read
     };
@@ -76,6 +81,25 @@ int init_directory(struct entry* ent, char* name, struct entry* children[], size
 }
 
 
+/* TODO:
+ * Have a
+ * struct background_entry {
+ *   struct entry background;
+ *   struct entry data;
+ *   struct entry control;
+ *   struct entry ...; // Each control file
+ *   char name_storage[11]; // To allocate storage for the background names.
+ * };
+ */
+struct entry sys_dev_video_graphic_background0_data_entry;
+struct entry sys_dev_video_graphic_background0_control_entry;
+struct entry sys_dev_video_graphic_background0_entry;
+
+struct entry sys_dev_video_graphic_palette_background0_entry;
+struct entry sys_dev_video_graphic_palette_entry;
+
+struct entry sys_dev_video_graphic_entry;
+
 struct entry sys_dev_video_mode_entry;
 struct entry sys_dev_video_entry;
 struct entry sys_dev_entry;
@@ -84,11 +108,35 @@ struct entry sys_entry;
 struct entry root;
 
 int file_system_init(void) {
+    init_raw_file_entry(&sys_dev_video_graphic_background0_data_entry,
+                        "data", (uint8_t*) 0x50000000, 0x24000);
+
+    init_raw_file_entry(&sys_dev_video_graphic_background0_control_entry,
+                        "control", (uint8_t*) 0x500FF100, 0x4);
+
+    init_directory(&sys_dev_video_graphic_background0_entry, "background0",
+                   (struct entry*[]) {&sys_dev_video_graphic_background0_data_entry,
+                       &sys_dev_video_graphic_background0_control_entry},
+                   2);
+
+    init_raw_file_entry(&sys_dev_video_graphic_palette_background0_entry, "background0",
+                        (uint8_t*) 0x500FC000, 0x400);
+
+    init_directory(&sys_dev_video_graphic_palette_entry, "palette",
+                   (struct entry*[]) {&sys_dev_video_graphic_palette_background0_entry},
+                   1);
+
+
+    init_directory(&sys_dev_video_graphic_entry, "graphic",
+                   (struct entry*[]) {&sys_dev_video_graphic_background0_entry,
+                       &sys_dev_video_graphic_palette_entry},
+                   2);
+
     init_raw_file_entry(&sys_dev_video_mode_entry,
                         "mode", (uint8_t*) 0x500FF414, 0x4);
 
     init_directory(&sys_dev_video_entry, "video",
-                   (struct entry*[]) {&sys_dev_video_mode_entry}, 1);
+                   (struct entry*[]) {&sys_dev_video_mode_entry, &sys_dev_video_graphic_entry}, 2);
     init_directory(&sys_dev_entry, "dev",
                    (struct entry*[]) {&sys_dev_video_entry}, 1);
     init_directory(&sys_entry, "sys",
