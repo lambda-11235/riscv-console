@@ -39,8 +39,6 @@ SECTIONS
         /*KEEP(*(.vector_table))  /* vector table defined in startup.c to be included */
         *(.init*)               /* entry point needs to be a base */
         *(.text*)               /* other code */
-        *(.rodata*)             /* constants go here */
-        *(.srodata*)            /* constants go here */
         _etext = .;             /* end of .text segment */
     } > CARTRIDGE
 
@@ -49,6 +47,11 @@ SECTIONS
     {
         _data = .;          /* beginning of .data segment */
         *(.data*)           /* data goes here */
+
+        /* Temp fix for issue 11 */
+        *(.rodata*)             /* constants go here */
+        *(.srodata*)            /* constants go here */
+
         _edata = .;         /* end of .data segment */
     } > RAM AT >CARTRIDGE       /* .data segment starts directly after the .text section in the CARTRIDGE */
 
