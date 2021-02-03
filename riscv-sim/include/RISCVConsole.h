@@ -4,6 +4,7 @@
 #include "RISCVCPU.h"
 #include "RISCVConsoleChipset.h"
 #include "RegisterBlockMemoryDevice.h"
+#include "ElfLoad.h"
 #include "MemoryDevice.h"
 #include "FlashMemoryDevice.h"
 #include "VideoController.h"
@@ -12,13 +13,25 @@
 #include <mutex>
 #include <condition_variable>
 #include <chrono>
+#include <set>
+
+using CRISCVConsoleBreakpointCalldata = void *;
+using CRISCVConsoleBreakpointCallback = void (*)(CRISCVConsoleBreakpointCalldata);
 
 class CRISCVConsole{
     public:
         enum class EDirection : uint32_t {Left = 0x1, Up = 0x2, Down = 0x4, Right = 0x8};
         enum class EButtonNumber : uint32_t {Button1 = 0x10, Button2 = 0x20, Button3 = 0x40, Button4 = 0x80};
     protected:
-        enum class EThreadState : uint32_t {Stop = 0, Run = 1, Terminate = 2};
+        enum class EThreadState : uint32_t {Stop = 0, Run = 1, Breakpoint = 2};
+        bool DDebugMode;
+        uint32_t DTimerDelayUS;
+        uint32_t DVideoDelayMS;
+        uint32_t DDebugCPUFreq;
+        uint32_t DVideoTicks;
+        uint32_t DTimerTicks;
+        std::atomic< bool > DRefreshScreenBuffer;
+        size_t DPendingReleaseBuffer;
         std::shared_ptr< CRISCVCPU > DCPU;
         std::shared_ptr< CRISCVCPU::CInstructionCache > DCPUCache;
         std::shared_ptr< CMemoryDevice > DMemoryController;
@@ -29,20 +42,32 @@ class CRISCVConsole{
         std::shared_ptr< CVideoController > DVideoController;
         std::shared_ptr< CRISCVConsoleChipset > DChipset;
         std::shared_ptr< CHardwareRegister< uint32_t > > DControllerState;
+        std::shared_ptr< CHardwareRegister< uint32_t > > DCartridgeState;
 
         std::atomic<uint32_t> DSystemCommand;
         std::atomic<uint32_t> DCPUAcknowledge;
         std::atomic<uint32_t> DTimerAcknowledge;
+        std::atomic<uint32_t> DSystemAcknowledge;
         std::shared_ptr< std::thread > DCPUThread;
         std::shared_ptr< std::thread > DTimerThread;
-        std::mutex DCPUMutex;
-        std::mutex DTimerMutex;
-        std::condition_variable DCPUConditionVariable;
-        std::condition_variable DTimerConditionVariable;
+        std::shared_ptr< std::thread > DSystemThread;
 
         std::chrono::steady_clock::time_point DSystemStartTime;
         uint64_t DCPUStartInstructionCount;
         
+        std::vector< std::string > DFirmwareInstructionStrings;
+        std::unordered_map< uint32_t, size_t > DFirmwareAddressesToIndices;
+
+        std::vector< std::string > DCartridgeInstructionStrings;
+        std::unordered_map< uint32_t, size_t > DCartridgeAddressesToIndices;
+
+        std::vector< std::string > DInstructionStrings;
+        std::unordered_map< uint32_t, size_t > DInstructionAddressesToIndices;
+
+        std::set< uint32_t > DBreakpoints;
+        CRISCVConsoleBreakpointCalldata DBreakpointCalldata;
+        CRISCVConsoleBreakpointCallback DBreakpointCallback;
+
 
         static const uint32_t DMainMemorySize;
         static const uint32_t DMainMemoryBase;
@@ -53,16 +78,21 @@ class CRISCVConsole{
         static const uint32_t DVideoMemoryBase;
         static const uint32_t DRegisterMemoryBase;
 
-        bool SystemNotStop();
         void CPUThreadExecute();
         void TimerThreadExecute();
+        void SystemThreadExecute();
         void SystemRun();
         void SystemStop();
-        void SystemTerminate();
+        bool SystemStep();
         void ResetComponents();
 
+        void ConstructInstructionStrings(CElfLoad &elffile, std::vector< std::string > &strings, std::unordered_map< uint32_t, size_t > &translations);
+        void ConstructFirmwareStrings(CElfLoad &elffile);
+        void ConstructCartridgeStrings(CElfLoad &elffile);
+        void MarkBreakpointStrings();
+
     public:
-        CRISCVConsole();
+        CRISCVConsole(uint32_t timerus, uint32_t videoms, uint32_t cpufreq);
         ~CRISCVConsole();
 
         uint32_t ScreenWidth(){
@@ -73,11 +103,27 @@ class CRISCVConsole{
             return DVideoController->ScreenHeight();
         };
 
+        std::shared_ptr< CRISCVCPU > CPU(){
+            return DCPU;
+        };
+
+        std::shared_ptr< CMemoryDevice > Memory(){
+            return DMemoryController;
+        };
+
+        void SetDebugMode(bool debug);
+
         void Reset();
 
         void PowerOn();
 
         void PowerOff();
+
+        void Run();
+
+        void Stop();
+
+        void Step();
 
         void PressDirection(EDirection dir);
         void ReleaseDirection(EDirection dir);
@@ -92,7 +138,75 @@ class CRISCVConsole{
         bool ProgramFirmware(std::shared_ptr< CDataSource > elfsrc);
 
         bool InsertCartridge(std::shared_ptr< CDataSource > elfsrc);
+
+        bool RemoveCartridge();
+
+        void AddBreakpoint(uint32_t addr);
+
+        void RemoveBreakpoint(uint32_t addr);
+
+        void SetBreakcpointCallback(CRISCVConsoleBreakpointCalldata calldata, CRISCVConsoleBreakpointCallback callback);
+
+        const std::set< uint32_t > &Breakpoints() const{
+            return DBreakpoints;
+        };
+
+        void ClearBreakpoints();
+
+        const std::vector< std::string > &InstructionStrings() const{
+            return DInstructionStrings;
+        }
+
+        size_t InstructionAddressesToIndices(uint32_t addr) const{
+            auto Search = DInstructionAddressesToIndices.find(addr);
+            if(Search != DInstructionAddressesToIndices.end()){
+                return Search->second;
+            }
+            return -1;
+        }
         
+        uint32_t MainMemorySize(){
+            return DMainMemorySize;
+        };
+
+        uint32_t MainMemoryBase(){
+            return DMainMemoryBase;
+        };
+
+        uint32_t FirmwareMemorySize(){
+            return DFirmwareMemorySize;
+        };
+
+        uint32_t FirmwareMemoryBase(){
+            return DFirmwareMemoryBase;
+        };
+
+        uint32_t CartridgeMemorySize(){
+            return DCartridgeMemorySize;
+        };
+
+        uint32_t CartridgeMemoryBase(){
+            return DCartridgeMemoryBase;
+        };
+
+        uint32_t VideoMemorySize(){
+            return DVideoController->VideoRAM()->MemorySize();
+        };
+
+        uint32_t VideoMemoryBase(){
+            return DVideoMemoryBase;
+        };
+
+        uint32_t RegisterMemorySize(){
+            return DRegisterBlock->MemorySize();
+        };
+
+        uint32_t RegisterMemoryBase(){
+            return DRegisterMemoryBase;
+        };
+
+        
+
 };
 
 #endif
