@@ -20,7 +20,7 @@ ifdef DEBUG_MODE
 DEFINES  += -DDEBUG
 CFLAGS   += -O0 -g -ggdb
 #LDFLAGS  += -Wl,-no_pie
-else 
+else
 CFLAGS   += -O3
 endif
 
@@ -30,7 +30,7 @@ CFLAGS   += -ffreestanding  -nostartfiles -nostdlib -nodefaultlibs
 LDFLAGS  +=
 LDFLAGS  += -Wl,--gc-sections -Wl,-T,$(LDFILE)
 
-TARGET_NAME = riscv-console-example
+TARGET_NAME = riscv-console-program
 
 TARGET_OBJS =   $(OBJ_DIR)/main.o               \
                 $(OBJ_DIR)/crt0.o
@@ -38,7 +38,7 @@ TARGET_OBJS =   $(OBJ_DIR)/main.o               \
 all: directories $(BIN_DIR)/$(TARGET_NAME)
 
 $(BIN_DIR)/$(TARGET_NAME): $(TARGET_OBJS)
-	$(CC) $(TARGET_OBJS) -o $(BIN_DIR)/$(TARGET_NAME) $(CFLAGS) $(DEFINES) $(LDFLAGS) 
+	$(CC) $(TARGET_OBJS) -o $(BIN_DIR)/$(TARGET_NAME) $(CFLAGS) $(DEFINES) $(LDFLAGS)
 	$(STRIP) $(BIN_DIR)/$(TARGET_NAME) -o $(BIN_DIR)/$(TARGET_NAME).strip
 
 $(OBJ_DIR)/%.o: $(SRC_DIR)/%.s
@@ -46,7 +46,7 @@ $(OBJ_DIR)/%.o: $(SRC_DIR)/%.s
 
 $(OBJ_DIR)/%.o: $(SRC_DIR)/%.c
 	$(CC) $(CFLAGS) $(DEFINES) $(INCLUDE) -c $< -o $@
-	
+
 directories: $(OBJ_DIR) $(BIN_DIR)
 
 $(OBJ_DIR):
@@ -54,7 +54,7 @@ $(OBJ_DIR):
 
 $(BIN_DIR):
 	mkdir -p $(BIN_DIR)
-	
+
 clean:
 	rm -rf $(OBJ_DIR)
 	rm -rf $(BIN_DIR)
