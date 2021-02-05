@@ -43,16 +43,20 @@ SECTIONS
         _etext = .;             /* end of .text segment */
     } > FLASH
 
+    .rodata :
+    {
+        _rodata = .;
+        *(.rodata*)             /* constants go here */
+        *(.srodata*)            /* constants go here */
+        . = ALIGN(4);
+        _erodata = .;
+    } > FLASH
+
     /* data, initialized variables, to be copied to RAM after reset */
     .data :
     {
         _data = .;          /* beginning of .data segment */
         *(.data*)           /* data goes here */
-
-        /* Temp fix for issue 11 */
-        *(.rodata*)             /* constants go here */
-        *(.srodata*)            /* constants go here */
-
         . = ALIGN(4);
         _edata = .;         /* end of .data segment */
     } > RAM AT >FLASH       /* .data segment starts directly after the .text section in FLASH */
