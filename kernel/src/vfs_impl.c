@@ -99,9 +99,13 @@ struct entry sys_dev_video_graphic_palette_background0_entry;
 struct entry sys_dev_video_graphic_palette_entry;
 
 struct entry sys_dev_video_graphic_entry;
-
 struct entry sys_dev_video_mode_entry;
 struct entry sys_dev_video_entry;
+
+struct entry sys_dev_input_controller_ctrlr0_entry;
+struct entry sys_dev_input_controller_entry;
+struct entry sys_dev_input_entry;
+
 struct entry sys_dev_entry;
 struct entry sys_entry;
 
@@ -137,8 +141,17 @@ int file_system_init(void) {
 
     init_directory(&sys_dev_video_entry, "video",
                    (struct entry*[]) {&sys_dev_video_mode_entry, &sys_dev_video_graphic_entry}, 2);
+
+
+    init_raw_file_entry(&sys_dev_input_controller_ctrlr0_entry,
+                        "ctrlr0", (uint8_t*) 0x40000018, 0x4);
+    init_directory(&sys_dev_input_controller_entry, "controller",
+                   (struct entry*[]) {&sys_dev_input_controller_ctrlr0_entry}, 1);
+    init_directory(&sys_dev_input_entry, "input",
+                   (struct entry*[]) {&sys_dev_input_controller_entry}, 1);
+    
     init_directory(&sys_dev_entry, "dev",
-                   (struct entry*[]) {&sys_dev_video_entry}, 1);
+                   (struct entry*[]) {&sys_dev_input_entry, &sys_dev_video_entry}, 2);
     init_directory(&sys_entry, "sys",
                    (struct entry*[]) {&sys_dev_entry}, 1);
     init_directory(&root, "",

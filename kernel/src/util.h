@@ -13,6 +13,13 @@
 int streq(const char* str1, const char* str2);
 
 /**
+ * Copies a string from one location to another.
+ *
+ * @return the number of characters copied on success, -1 on error.
+ */
+int strcpy_(char* dest, const char* source);
+
+/**
  * Converts a uint32_t to a string.
  *
  * @param buf buffer to store the string in

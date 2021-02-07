@@ -14,8 +14,9 @@ const int (*CARTRIDGE)(void) = (int (*)(void))(0x20000000);
 volatile int start_program = 0;
 volatile int program_running = 0;
 
-volatile uint32_t a07_regs[6];
+volatile int cmd_pressed = 0;
 
+volatile uint32_t a07_regs[6];
 void handle_syscall(void);
 
 
@@ -26,17 +27,43 @@ int main() {
     int pal_id;
     int controls_id;
     int data_id;
+    int ctrlr_id;
     volatile uint32_t* mode;
     volatile uint32_t* palette;
     volatile uint32_t* controls;
     volatile uint8_t* data;
+    volatile uint32_t* ctrlr;
 
+
+    file_system_init();
+
+
+    strcpy_(VIDEO_MEMORY, "Please insert cartridge");
+
+    while(1) {
+        if (start_program) {
+            start_program = 0;
+            program_running = 1;
+            ret = CARTRIDGE();
+            program_running = 0;
+            // TODO: Cleanup
+
+            // TODO: Remove after demo
+            for (i = 0; i < TEXT_WIDTH; i++)
+                VIDEO_MEMORY[i] = 0;
+
+            cmd_pressed = 0;
+            u32_to_str(VIDEO_MEMORY + strcpy_(VIDEO_MEMORY, "Program returned "), ret);
+            strcpy_(VIDEO_MEMORY + TEXT_WIDTH, "Press CMD to continue");
+            while (!cmd_pressed) {}
+
+            break;
+        }
+    }
 
     // This shows how to use the file system to interface with graphics.
     // My idea is that a user level library will memmap to gain access to the pointers,
     // and maintain the mapping for the life of the program.
-    file_system_init();
-
     mode_id = open("/sys/dev/video/mode", READ|WRITE);
     if (mode_id == -1) fault("Could not open mode");
     mode = memmap(mode_id, 0);
@@ -57,15 +84,34 @@ int main() {
     data = memmap(data_id, 0);
     if (data == NULL) fault("Could not memmap data");
 
+    ctrlr_id = open("/sys/dev/input/controller/ctrlr0", READ|WRITE);
+    if (ctrlr_id == -1) fault("Could not open ctrlr0");
+    ctrlr = memmap(ctrlr_id, 0);
+    if (ctrlr == NULL) fault("Could not memmap ctrlr0");
+
     *mode = 1;
 
-    for (i = 0; i < 256; i++)
-        palette[i] = 0x0000FFFF;
+    palette[0] = 0xFFFFFFFF;
+    palette[1] = 0xFF0000FF;
+    palette[2] = 0x00FF00FF;
+    palette[3] = 0x0000FFFF;
 
     *controls = (288<<12) | (512 << 2);
 
-    for (i = 0; i < 147456; i++)
-        data[i] = 0;
+    int pal_sel = 0;
+    while (1) {
+        if ((*ctrlr) & 1)
+            pal_sel = 0;
+        else if ((*ctrlr) & 2)
+            pal_sel = 1;
+        else if ((*ctrlr) & 4)
+            pal_sel = 2;
+        else if ((*ctrlr) & 8)
+            pal_sel = 3;
+        
+        for (i = 0; i < 147456; i++)
+            data[i] = pal_sel;
+    }
 
     close(mode_id);
     close(pal_id);
@@ -73,22 +119,6 @@ int main() {
     close(data_id);
 
     while(1) {}
-
-
-    while(1) {
-        if (start_program) {
-            start_program = 0;
-            program_running = 1;
-            ret = CARTRIDGE();
-
-            for (i = 0; i < TEXT_WIDTH; i++)
-                VIDEO_MEMORY[TEXT_WIDTH+i] = 0;
-
-            u32_to_str(VIDEO_MEMORY, ret);
-
-            program_running = 0;
-        }
-    }
 
     return 0;
 }
@@ -111,13 +141,14 @@ void c_interrupt_handler(void){
         handle_syscall();
         break;
     default:
-        // Error: Unrecognize interrupt
+        // Unrecognized interrupt
         break;
     }
 
     if (ip & 1) {
         if (program_running) {
             // TODO: cleanup
+            fault("Cartridge removed, cleanup not implemented");
         }
 
         start_program = 1;
@@ -135,28 +166,11 @@ void c_interrupt_handler(void){
 
     if (ip & 4) {
         // TODO: CMD button press
+        cmd_pressed = 1;
 
         // Clear interrupt
         INTERRUPT_PENDING &= 4;
     }
-
-    /*if (mcause != 0x80000007) {
-        if (mcause == 0)
-            VIDEO_MEMORY[TEXT_WIDTH-1] = '0';
-
-        for (int i = 0; mcause > 0; i++) {
-            int32_t res = mcause%16;
-            char dig;
-
-            if (res < 10)
-                dig = '0' + res;
-            else
-                dig = 'a' + res - 10;
-
-            VIDEO_MEMORY[3*TEXT_WIDTH - 1 - i] = dig;
-            mcause /= 16;
-        }
-        }*/
 }
 
 void handle_syscall(void) {

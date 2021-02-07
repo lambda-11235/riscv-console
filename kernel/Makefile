@@ -14,7 +14,7 @@ SRC_DIR = ./src
 OBJ_DIR = ./obj
 BIN_DIR = ./bin
 
-DEBUG_MODE=TRUE
+#DEBUG_MODE=TRUE
 
 ifdef DEBUG_MODE
 DEFINES  += -DDEBUG

@@ -15,6 +15,16 @@ int streq(const char* str1, const char* str2) {
 }
 
 
+int strcpy_(char* dest, const char* source) {
+    int i;
+
+    for (i = 0; source[i] != 0; i++)
+        dest[i] = source[i];
+
+    return i;
+}
+
+
 int u32_to_str(char* buf, uint32_t x) {
     size_t i = 0;
     size_t j = 0;
