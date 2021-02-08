@@ -12,8 +12,9 @@ MEMORY
 {
     /* riscv-console virt machine FLASH */
     FLASH (rx)  : ORIGIN = 0x00000000, LENGTH = 16M
-    /* riscv-console virt machine RAM */
+    /* riscv-console virt machine RAM for kernel data */
     RAM (rwx)   : ORIGIN = 0x70000000, LENGTH = 16M
+    KERN_RAM (rwx)   : ORIGIN = 0x70000000, LENGTH = 4M
 
 }
 ENTRY(_start)
@@ -52,23 +53,23 @@ SECTIONS
         _erodata = .;
     } > FLASH
 
-    /* data, initialized variables, to be copied to RAM after reset */
+    /* data, initialized variables, to be copied to KERN_RAM after reset */
     .data :
     {
         _data = .;          /* beginning of .data segment */
         *(.data*)           /* data goes here */
         . = ALIGN(4);
         _edata = .;         /* end of .data segment */
-    } > RAM AT >FLASH       /* .data segment starts directly after the .text section in FLASH */
+    } > KERN_RAM AT >FLASH       /* .data segment starts directly after the .text section in FLASH */
 
-    /* sdata, initialized variables, to be copied to RAM after reset */
+    /* sdata, initialized variables, to be copied to KERN_RAM after reset */
     .sdata :
     {
         _sdata = .;         /* beginning of .sdata segment */
         *(.sdata*)          /* data goes here */
         . = ALIGN(4);
         _esdata = .;        /* end of .data segment */
-    } > RAM AT >FLASH       /* .sdata segment starts directly after the .text section in FLASH */
+    } > KERN_RAM AT >FLASH       /* .sdata segment starts directly after the .text section in FLASH */
 
     /* uninitialized data which is initialized to 0 upon after reset */
     .bss :
@@ -79,7 +80,7 @@ SECTIONS
         *(COMMON)
         . = ALIGN(. != 0 ? 32 / 8 : 1);
         _ebss = .;          /* end of .bss segment */
-    } > RAM
+    } > KERN_RAM
 
     __global_pointer$ = MIN(_sdata + 0x800,
 		            MAX(_data + 0x800, _ebss - 0x800));

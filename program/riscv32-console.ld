@@ -12,11 +12,12 @@ MEMORY
 {
     /* riscv-console virt machine CARTRIDGE */
     CARTRIDGE (rx)  : ORIGIN = 0x20000000, LENGTH = 16M
-    /* riscv-console virt machine RAM */
+    /* riscv-console virt machine RAM for user data */
     RAM (rwx)   : ORIGIN = 0x70000000, LENGTH = 16M
+    USER_RAM (rwx)   : ORIGIN = 0x70400000, LENGTH = 4M
     
 }
-ENTRY(main)
+ENTRY(_start)
 SEARCH_DIR("/opt/riscv32/riscv32-unknown-elf/lib");
 SECTIONS
 {
@@ -49,23 +50,23 @@ SECTIONS
         *(.srodata*)            /* constants go here */
         . = ALIGN(4);
         _erodata = .;
-    } > FLASH
+    } > CARTRIDGE
 
-    /* data, initialized variables, to be copied to RAM after reset */
+    /* data, initialized variables, to be copied to USER_RAM after reset */
     .data : 
     {
         _data = .;          /* beginning of .data segment */
         *(.data*)           /* data goes here */
         _edata = .;         /* end of .data segment */
-    } > RAM AT >CARTRIDGE       /* .data segment starts directly after the .text section in the CARTRIDGE */
+    } > USER_RAM AT >CARTRIDGE       /* .data segment starts directly after the .text section in the CARTRIDGE */
 
-    /* sdata, initialized variables, to be copied to RAM after reset */
+    /* sdata, initialized variables, to be copied to USER_RAM after reset */
     .sdata : 
     {
         _sdata = .;         /* beginning of .sdata segment */
         *(.sdata*)          /* data goes here */
         _esdata = .;        /* end of .data segment */
-    } > RAM AT >CARTRIDGE       /* .sdata segment starts directly after the .text section in the CARTRIDGE */
+    } > USER_RAM AT >CARTRIDGE       /* .sdata segment starts directly after the .text section in the CARTRIDGE */
 
     /* uninitialized data which is initialized to 0 upon after reset */
     .bss :
@@ -76,7 +77,7 @@ SECTIONS
         *(COMMON)       
         . = ALIGN(. != 0 ? 32 / 8 : 1);
         _ebss = .;          /* end of .bss segment */
-    } > RAM
+    } > USER_RAM
 
     __global_pointer$ = MIN(_sdata + 0x800,
 		            MAX(_data + 0x800, _ebss - 0x800));

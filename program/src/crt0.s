@@ -1,10 +1,16 @@
 .section .init, "ax"
 .global _start
 _start:
-    .cfi_startproc
-    .cfi_undefined ra
     .option push
     .option norelax
-    jal zero, main
-    .cfi_endproc
-    .end
+    addi sp, sp, -4
+    sw ra, 0(sp)
+
+    la gp, __global_pointer$
+    call init
+    nop
+    call main
+
+    lw ra, 0(sp)
+    addi sp, sp, 4
+    ret

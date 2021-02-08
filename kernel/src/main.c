@@ -10,14 +10,18 @@ volatile char *VIDEO_MEMORY = (volatile char *)(0x50000000 + 0xFE800);
 const unsigned int TEXT_HEIGHT = 36;
 const unsigned int TEXT_WIDTH = 64;
 
+
+int run_cartridge(void);
 const int (*CARTRIDGE)(void) = (int (*)(void))(0x20000000);
 volatile int start_program = 0;
 volatile int program_running = 0;
 
-volatile int cmd_pressed = 0;
 
 volatile uint32_t a07_regs[6];
 void handle_syscall(void);
+
+
+volatile int cmd_pressed = 0;
 
 
 int main() {
@@ -43,9 +47,7 @@ int main() {
     while(1) {
         if (start_program) {
             start_program = 0;
-            program_running = 1;
-            ret = CARTRIDGE();
-            program_running = 0;
+            ret = run_cartridge();
             // TODO: Cleanup
 
             // TODO: Remove after demo
@@ -122,6 +124,25 @@ int main() {
 
     return 0;
 }
+
+
+int run_cartridge(void) {
+    uint32_t gp_save;
+    int ret;
+    
+    program_running = 1;
+    asm volatile ("mv %0, gp" : "=r"(gp_save));
+
+    // NOTE: This should be fine since CARTRIDGE is loaded from data
+    // before the call, but if any thing goes wrong check here.
+    ret = CARTRIDGE();
+
+    asm volatile ("mv gp, %0" : : "r"(gp_save));
+    program_running = 0;
+
+    return ret;
+}
+
 
 void c_interrupt_handler(void){
     uint64_t new_comp;
