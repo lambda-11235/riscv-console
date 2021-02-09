@@ -110,7 +110,7 @@ int main() {
             pal_sel = 2;
         else if ((*ctrlr) & 8)
             pal_sel = 3;
-        
+
         for (i = 0; i < 147456; i++)
             data[i] = pal_sel;
     }
@@ -127,17 +127,16 @@ int main() {
 
 
 int run_cartridge(void) {
-    uint32_t gp_save;
     int ret;
-    
-    program_running = 1;
-    asm volatile ("mv %0, gp" : "=r"(gp_save));
 
-    // NOTE: This should be fine since CARTRIDGE is loaded from data
-    // before the call, but if any thing goes wrong check here.
+    program_running = 1;
+
     ret = CARTRIDGE();
 
-    asm volatile ("mv gp, %0" : : "r"(gp_save));
+    // Restore global pointer
+    asm(".option norelax\n"
+        "la gp, __global_pointer$");
+
     program_running = 0;
 
     return ret;
