@@ -174,9 +174,11 @@ void CRISCVConsole::ResetComponents(){
     DChipset->Reset();
 }
 
-void CRISCVConsole::ConstructInstructionStrings(CElfLoad &elffile, std::vector< std::string > &strings, std::unordered_map< uint32_t, size_t > &translations){
+void CRISCVConsole::ConstructInstructionStrings(CElfLoad &elffile, std::vector< std::string > &strings, std::unordered_map< uint32_t, size_t > &translations, std::vector< std::string > &labels, std::vector< size_t > &labelindices){
     strings.clear();
     translations.clear();
+    labels.clear();
+    labelindices.clear();
     for(size_t Index = 0; Index < elffile.SectionHeaderCount(); Index++){
         auto &Header = elffile.SectionHeader(Index);
         if(Header.DFlags & 0x4){
@@ -191,6 +193,8 @@ void CRISCVConsole::ConstructInstructionStrings(CElfLoad &elffile, std::vector< 
             uint32_t EndAddress = Header.DVirtualAddress + Header.DSize;
             while(CurrentAddress < EndAddress){
                 if((NextSymbol != AddressKeys.end())&&(CurrentAddress == *NextSymbol)){
+                    labels.push_back(Header.DSymbols.find(CurrentAddress)->second);
+                    labelindices.push_back(strings.size());
                     strings.push_back(Header.DSymbols.find(CurrentAddress)->second);
                     NextSymbol++;
                 }
@@ -222,12 +226,20 @@ void CRISCVConsole::ConstructInstructionStrings(CElfLoad &elffile, std::vector< 
 void CRISCVConsole::ConstructFirmwareStrings(CElfLoad &elffile){
     DFirmwareInstructionStrings.clear();
     DFirmwareAddressesToIndices.clear();
-    ConstructInstructionStrings(elffile, DFirmwareInstructionStrings, DFirmwareAddressesToIndices);
+    DFirmwareInstructionLabels.clear();
+    DFirmwareInstructionLabelIndices.clear();
+    ConstructInstructionStrings(elffile, DFirmwareInstructionStrings, DFirmwareAddressesToIndices, DFirmwareInstructionLabels, DFirmwareInstructionLabelIndices);
     DInstructionStrings = DFirmwareInstructionStrings;
     DInstructionStrings.insert(DInstructionStrings.end(), DCartridgeInstructionStrings.begin(),DCartridgeInstructionStrings.end());
     DInstructionAddressesToIndices = DFirmwareAddressesToIndices;
     for(auto &AddrIdx : DCartridgeAddressesToIndices){
         DInstructionAddressesToIndices[AddrIdx.first] = AddrIdx.second + DFirmwareInstructionStrings.size();
+    }
+    DInstructionLabels = DFirmwareInstructionLabels;
+    DInstructionLabels.insert(DInstructionLabels.end(), DCartridgeInstructionLabels.begin(),DCartridgeInstructionLabels.end());
+    DInstructionLabelIndices = DFirmwareInstructionLabelIndices;
+    for(auto &Index : DCartridgeInstructionLabelIndices){
+        DInstructionLabelIndices.push_back(DFirmwareInstructionStrings.size() + Index);
     }
     MarkBreakpointStrings();
 }
@@ -235,12 +247,20 @@ void CRISCVConsole::ConstructFirmwareStrings(CElfLoad &elffile){
 void CRISCVConsole::ConstructCartridgeStrings(CElfLoad &elffile){
     DCartridgeInstructionStrings.clear();
     DCartridgeAddressesToIndices.clear();
-    ConstructInstructionStrings(elffile, DCartridgeInstructionStrings, DCartridgeAddressesToIndices);
+    DCartridgeInstructionLabels.clear();
+    DCartridgeInstructionLabelIndices.clear();
+    ConstructInstructionStrings(elffile, DCartridgeInstructionStrings, DCartridgeAddressesToIndices, DCartridgeInstructionLabels, DCartridgeInstructionLabelIndices);
     DInstructionStrings = DFirmwareInstructionStrings;
     DInstructionStrings.insert(DInstructionStrings.end(), DCartridgeInstructionStrings.begin(),DCartridgeInstructionStrings.end());
     DInstructionAddressesToIndices = DFirmwareAddressesToIndices;
     for(auto &AddrIdx : DCartridgeAddressesToIndices){
         DInstructionAddressesToIndices[AddrIdx.first] = AddrIdx.second + DFirmwareInstructionStrings.size();
+    }
+    DInstructionLabels = DFirmwareInstructionLabels;
+    DInstructionLabels.insert(DInstructionLabels.end(), DCartridgeInstructionLabels.begin(),DCartridgeInstructionLabels.end());
+    DInstructionLabelIndices = DFirmwareInstructionLabelIndices;
+    for(auto &Index : DCartridgeInstructionLabelIndices){
+        DInstructionLabelIndices.push_back(DFirmwareInstructionStrings.size() + Index);
     }
     MarkBreakpointStrings();
 }
@@ -346,11 +366,17 @@ bool CRISCVConsole::VideoTimerTick(std::shared_ptr<CGraphicSurface> screensurfac
 }
 
 bool CRISCVConsole::ProgramFirmware(std::shared_ptr< CDataSource > elfsrc){
-    auto CurrentState = DSystemCommand.load();
-    SystemStop();
     // Program the firmware
     CElfLoad ElfFile(elfsrc);
     if(ElfFile.ValidFile()){
+        for(size_t Index = 0; Index < ElfFile.ProgramHeaderCount(); Index++){
+            auto &Header = ElfFile.ProgramHeader(Index);
+            if((Header.DPhysicalAddress < DFirmwareMemoryBase)||(DFirmwareMemoryBase + DFirmwareMemorySize < Header.DPhysicalAddress + Header.DFileSize)){
+                return false;
+            }
+        }
+        auto CurrentState = DSystemCommand.load();
+        SystemStop();
         DFirmwareFlash->WriteEnabled(true);
         DFirmwareFlash->EraseAll();
         for(size_t Index = 0; Index < ElfFile.ProgramHeaderCount(); Index++){
@@ -358,6 +384,7 @@ bool CRISCVConsole::ProgramFirmware(std::shared_ptr< CDataSource > elfsrc){
             DFirmwareFlash->StoreData(Header.DPhysicalAddress,Header.DPayload.data(),Header.DFileSize);
         }
         DFirmwareFlash->WriteEnabled(false);
+        DCPUCache->FlushRange(DFirmwareMemoryBase, DFirmwareMemorySize);
         ResetComponents();
         ConstructFirmwareStrings(ElfFile);
         if(CurrentState == to_underlying(EThreadState::Run)){
@@ -370,12 +397,17 @@ bool CRISCVConsole::ProgramFirmware(std::shared_ptr< CDataSource > elfsrc){
 }
 
 bool CRISCVConsole::InsertCartridge(std::shared_ptr< CDataSource > elfsrc){
-    auto CurrentState = DSystemCommand.load();
-    SystemStop();
     // Program the cartridge
     CElfLoad ElfFile(elfsrc);
     if(ElfFile.ValidFile()){
-
+        for(size_t Index = 0; Index < ElfFile.ProgramHeaderCount(); Index++){
+            auto &Header = ElfFile.ProgramHeader(Index);
+            if((Header.DPhysicalAddress < DCartridgeMemoryBase)||(DCartridgeMemoryBase + DCartridgeMemorySize < Header.DPhysicalAddress + Header.DFileSize)){
+                return false;
+            }
+        }
+        auto CurrentState = DSystemCommand.load();
+        SystemStop();
         DCartridgeFlash->WriteEnabled(true);
         DCartridgeFlash->EraseAll();
         for(size_t Index = 0; Index < ElfFile.ProgramHeaderCount(); Index++){
@@ -383,6 +415,7 @@ bool CRISCVConsole::InsertCartridge(std::shared_ptr< CDataSource > elfsrc){
             DCartridgeFlash->StoreData(Header.DPhysicalAddress,Header.DPayload.data(),Header.DFileSize);
         }
         DCartridgeFlash->WriteEnabled(false);
+        DCPUCache->FlushRange(DCartridgeMemoryBase, DCartridgeMemorySize);
         DChipset->InsertCartridge(ElfFile.Entry());
         ConstructCartridgeStrings(ElfFile);
         if(CurrentState == to_underlying(EThreadState::Run)){
@@ -400,9 +433,17 @@ bool CRISCVConsole::RemoveCartridge(){
 
     DCartridgeInstructionStrings.clear();
     DCartridgeAddressesToIndices.clear();
+    DCartridgeInstructionLabels.clear();
+    DCartridgeInstructionLabelIndices.clear();
     DInstructionStrings = DFirmwareInstructionStrings;
     DInstructionAddressesToIndices = DFirmwareAddressesToIndices;
+    DInstructionLabels = DFirmwareInstructionLabels;
+    DInstructionLabelIndices = DFirmwareInstructionLabelIndices;
     MarkBreakpointStrings();
+    DCartridgeFlash->WriteEnabled(true);
+    DCartridgeFlash->EraseAll();
+    DCartridgeFlash->WriteEnabled(false);
+    DCPUCache->FlushRange(DCartridgeMemoryBase, DCartridgeMemorySize);
     DChipset->RemoveCartridge();
     if(CurrentState == to_underlying(EThreadState::Run)){
         // Clear the cache for cartridge
