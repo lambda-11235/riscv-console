@@ -1,7 +1,15 @@
 
 #ifndef _REGISTERS_H_
-
 #define _REGISTERS_H_
+
+#define INTERRUPT_ENABLE    (*((volatile uint32_t *)0x40000000))
+#define INTERRUPT_PENDING   (*((volatile uint32_t *)0x40000004))
+#define MTIME_LOW           (*((volatile uint32_t *)0x40000008))
+#define MTIME_HIGH          (*((volatile uint32_t *)0x4000000C))
+#define MTIMECMP_LOW        (*((volatile uint32_t *)0x40000010))
+#define MTIMECMP_HIGH       (*((volatile uint32_t *)0x40000014))
+#define CONTROLLER          (*((volatile uint32_t *)0x40000018))
+
 
 __attribute__((always_inline)) static inline 
 void csr_mepc_inc(void){
@@ -45,20 +53,14 @@ uint32_t csr_mip_read(void){
 __attribute__((always_inline)) static inline 
 void csr_enable_interrupts(void){
     asm volatile ("csrsi mstatus, 0x8");
+    INTERRUPT_ENABLE = 1|2|4;
 }
 
 __attribute__((always_inline)) static inline 
 void csr_disable_interrupts(void){
     asm volatile ("csrci mstatus, 0x8");
+    INTERRUPT_ENABLE = 0;
 }
-
-#define INTERRUPT_ENABLE    (*((volatile uint32_t *)0x40000000))
-#define INTERRUPT_PENDING   (*((volatile uint32_t *)0x40000004))
-#define MTIME_LOW           (*((volatile uint32_t *)0x40000008))
-#define MTIME_HIGH          (*((volatile uint32_t *)0x4000000C))
-#define MTIMECMP_LOW        (*((volatile uint32_t *)0x40000010))
-#define MTIMECMP_HIGH       (*((volatile uint32_t *)0x40000014))
-#define CONTROLLER          (*((volatile uint32_t *)0x40000018))
 
 
 #endif /* _REGISTERS_H_ */
