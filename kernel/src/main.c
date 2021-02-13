@@ -22,6 +22,8 @@ void handle_syscall(void);
 
 
 volatile int cmd_pressed = 0;
+volatile int redraw = 0;
+volatile int pal_sel = 0;
 
 
 int main() {
@@ -30,12 +32,10 @@ int main() {
     int mode_id;
     int pal_id;
     int controls_id;
-    int data_id;
     int ctrlr_id;
     volatile uint32_t* mode;
     volatile uint32_t* palette;
     volatile uint32_t* controls;
-    volatile uint8_t* data;
     volatile uint32_t* ctrlr;
 
 
@@ -81,10 +81,6 @@ int main() {
     controls = memmap(controls_id, 0);
     if (controls == NULL) fault("Could not memmap controls");
 
-    data_id = open("/sys/dev/video/graphic/background0/data", READ|WRITE);
-    if (data_id == -1) fault("Could not open data");
-    data = memmap(data_id, 0);
-    if (data == NULL) fault("Could not memmap data");
 
     ctrlr_id = open("/sys/dev/input/controller/ctrlr0", READ|WRITE);
     if (ctrlr_id == -1) fault("Could not open ctrlr0");
@@ -100,25 +96,25 @@ int main() {
 
     *controls = (288<<12) | (512 << 2);
 
-    int pal_sel = 0;
     while (1) {
-        if ((*ctrlr) & 1)
+        if ((*ctrlr) & 1) {
             pal_sel = 0;
-        else if ((*ctrlr) & 2)
+            redraw = 1;
+        } else if ((*ctrlr) & 2) {
             pal_sel = 1;
-        else if ((*ctrlr) & 4)
+            redraw = 1;
+        } else if ((*ctrlr) & 4) {
             pal_sel = 2;
-        else if ((*ctrlr) & 8)
+            redraw = 1;
+        } else if ((*ctrlr) & 8) {
             pal_sel = 3;
-
-        for (i = 0; i < 147456; i++)
-            data[i] = pal_sel;
+            redraw = 1;
+        }
     }
 
     close(mode_id);
     close(pal_id);
     close(controls_id);
-    close(data_id);
 
     while(1) {}
 
@@ -179,6 +175,22 @@ void c_interrupt_handler(void){
 
     if (ip & 2) {
         // TODO: Video interrupt
+        if (redraw) {
+            int data_id;
+            volatile uint8_t* data;
+
+            redraw = 0;
+
+            data_id = open("/sys/dev/video/graphic/background0/data", READ|WRITE);
+            if (data_id == -1) fault("Could not open data");
+            data = memmap(data_id, 0);
+            if (data == NULL) fault("Could not memmap data");
+
+            for (int i = 0; i < 147456; i++)
+                data[i] = pal_sel;
+
+            close(data_id);
+        }
 
         // Clear interrupt
         INTERRUPT_PENDING &= 2;

@@ -33,7 +33,7 @@ void init(void){
     csr_enable_interrupts();    // Global interrupt enable
 
     // FIXME: Video interrupts freeze program due to too high of freq
-    INTERRUPT_ENABLE = 5;
+    INTERRUPT_ENABLE = 1|2|4;
 
     MTIMECMP_LOW = 1;
     MTIMECMP_HIGH = 0;
