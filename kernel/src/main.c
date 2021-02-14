@@ -57,6 +57,7 @@ int main() {
             cmd_pressed = 0;
             u32_to_str(VIDEO_MEMORY + strcpy_(VIDEO_MEMORY, "Program returned "), ret);
             strcpy_(VIDEO_MEMORY + TEXT_WIDTH, "Press CMD to continue");
+            strcpy_(VIDEO_MEMORY + 3*TEXT_WIDTH, "WARNING: Do not continue if you have epilepsy triggered by flashing lights");
             while (!cmd_pressed) {}
 
             break;
@@ -90,9 +91,9 @@ int main() {
     *mode = 1;
 
     palette[0] = 0xFFFFFFFF;
-    palette[1] = 0xFF0000FF;
-    palette[2] = 0x00FF00FF;
-    palette[3] = 0x0000FFFF;
+    palette[1] = 0xFFFF0000;
+    palette[2] = 0xFF00FF00;
+    palette[3] = 0xFF0000FF;
 
     *controls = (288<<12) | (512 << 2);
 

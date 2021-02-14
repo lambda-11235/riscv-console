@@ -1,6 +1,8 @@
 
 ## Demo
 
+WARNING: Do not run demo if you have epilepsy triggered by flashing lights.
+
 To run the demo application do the following steps.
 
 1. Build and run the kernel found in `./kernel/`.
