@@ -11,7 +11,7 @@
 #define CONTROLLER          (*((volatile uint32_t *)0x40000018))
 
 
-__attribute__((always_inline)) static inline 
+__attribute__((always_inline)) static inline
 void csr_mepc_inc(void){
     uint32_t* mepc;
     asm volatile ("csrr %0, mepc" : "=r"(mepc));
@@ -19,26 +19,26 @@ void csr_mepc_inc(void){
     asm volatile ("csrw mepc, %0" : : "r"(mepc));
 }
 
-__attribute__((always_inline)) static inline 
+__attribute__((always_inline)) static inline
 uint32_t csr_mcause_read(void){
     uint32_t result;
     asm volatile ("csrr %0, mcause" : "=r"(result));
     return result;
 }
 
-__attribute__((always_inline)) static inline 
+__attribute__((always_inline)) static inline
 uint32_t csr_mstatus_read(void){
     uint32_t result;
     asm volatile ("csrr %0, mstatus" : "=r"(result));
     return result;
 }
 
-__attribute__((always_inline)) static inline 
+__attribute__((always_inline)) static inline
 void csr_mstatus_write(uint32_t val){
     asm volatile ("csrw mstatus, %0" : : "r"(val));
 }
 
-__attribute__((always_inline)) static inline 
+__attribute__((always_inline)) static inline
 void csr_write_mie(uint32_t val){
     asm volatile ("csrw mie, %0" : : "r"(val));
 }
@@ -50,15 +50,25 @@ uint32_t csr_mip_read(void){
     return result;
 }
 
-__attribute__((always_inline)) static inline 
+__attribute__((always_inline)) static inline
 void csr_enable_interrupts(void){
     asm volatile ("csrsi mstatus, 0x8");
+}
+
+__attribute__((always_inline)) static inline
+void csr_disable_interrupts(void){
+    asm volatile ("csrci mstatus, 0x8");
+}
+
+__attribute__((always_inline)) static inline
+void enable_interrupts(void){
+    csr_enable_interrupts();
     INTERRUPT_ENABLE = 1|2|4;
 }
 
-__attribute__((always_inline)) static inline 
-void csr_disable_interrupts(void){
-    asm volatile ("csrci mstatus, 0x8");
+__attribute__((always_inline)) static inline
+void disable_interrupts(void){
+    csr_disable_interrupts();
     INTERRUPT_ENABLE = 0;
 }
 

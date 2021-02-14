@@ -15,5 +15,5 @@ To run the demo application do the following steps.
 
 6. Press CMD when you're ready to continue.
 
-7. At this point you will be placed in graphics mode, and can change
-   the background color using the directional keys.
+7. At this point you will be placed in graphics mode, and the
+   background color will change every video interrupt.

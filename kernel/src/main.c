@@ -22,7 +22,7 @@ void handle_syscall(void);
 
 
 volatile int cmd_pressed = 0;
-volatile int redraw = 0;
+volatile int draw = 0;
 volatile int pal_sel = 0;
 
 
@@ -96,25 +96,11 @@ int main() {
 
     *controls = (288<<12) | (512 << 2);
 
-    while (1) {
-        if ((*ctrlr) & 1) {
-            pal_sel = 0;
-            redraw = 1;
-        } else if ((*ctrlr) & 2) {
-            pal_sel = 1;
-            redraw = 1;
-        } else if ((*ctrlr) & 4) {
-            pal_sel = 2;
-            redraw = 1;
-        } else if ((*ctrlr) & 8) {
-            pal_sel = 3;
-            redraw = 1;
-        }
-    }
-
     close(mode_id);
     close(pal_id);
     close(controls_id);
+
+    draw = 1;
 
     while(1) {}
 
@@ -175,11 +161,9 @@ void c_interrupt_handler(void){
 
     if (ip & 2) {
         // TODO: Video interrupt
-        if (redraw) {
+        if (draw) {
             int data_id;
             volatile uint8_t* data;
-
-            redraw = 0;
 
             data_id = open("/sys/dev/video/graphic/background0/data", READ|WRITE);
             if (data_id == -1) fault("Could not open data");
@@ -190,6 +174,8 @@ void c_interrupt_handler(void){
                 data[i] = pal_sel;
 
             close(data_id);
+
+            pal_sel = (pal_sel + 1)%4;
         }
 
         // Clear interrupt
