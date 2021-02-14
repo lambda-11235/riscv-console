@@ -9,7 +9,8 @@ To run the demo application do the following steps.
 
 2. Build and insert the program found in `./program/`.
 
-3. Observe the value the program says it will return.
+3. Observe that the program will return the number of seconds since the
+   program started, which it is counting.
 
 4. Press any button to exit the program.
 

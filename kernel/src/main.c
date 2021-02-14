@@ -16,15 +16,17 @@ const int (*CARTRIDGE)(void) = (int (*)(void))(0x20000000);
 volatile int start_program = 0;
 volatile int program_running = 0;
 
-
-volatile uint32_t a07_regs[6];
-void handle_syscall(void);
-
+volatile uint32_t c_mcause;
+volatile uint32_t c_mip;
+volatile uint32_t a05_regs[6];
 
 volatile int cmd_pressed = 0;
 volatile int draw = 0;
 volatile int pal_sel = 0;
 
+// TODO: Remove after demo
+#define TICKS_PER_SEC 1000
+volatile int timer = 0;
 
 int main() {
     uint32_t ret;
@@ -128,27 +130,26 @@ int run_cartridge(void) {
 
 void c_interrupt_handler(void){
     uint64_t new_comp;
-    uint32_t mcause = csr_mcause_read();
-    uint32_t mip = csr_mip_read();
-    uint32_t ip = INTERRUPT_PENDING;
+    uint32_t ret = 0;
 
-    switch (mcause) {
+    switch (c_mcause) {
     case 0x80000007: // Timer Interrupt
         new_comp = (((uint64_t)MTIMECMP_HIGH)<<32) | MTIMECMP_LOW;
-        new_comp += 100;
+        new_comp += TICKS_PER_SEC;
         MTIMECMP_HIGH = new_comp>>32;
         MTIMECMP_LOW = new_comp;
+
+        timer++;
         break;
     case 0xB: // ECALL
-        csr_mepc_inc();
-        handle_syscall();
+        fault("Syscall handled improperly as asynchronous interrupt");
         break;
     default:
         // Unrecognized interrupt
         break;
     }
 
-    if (ip & 1) {
+    if (INTERRUPT_PENDING & 1) {
         if (program_running) {
             // TODO: cleanup
             fault("Cartridge removed, cleanup not implemented");
@@ -160,7 +161,7 @@ void c_interrupt_handler(void){
         INTERRUPT_PENDING &= 1;
     }
 
-    if (ip & 2) {
+    if (INTERRUPT_PENDING & 2) {
         // TODO: Video interrupt
         if (draw) {
             int data_id;
@@ -183,7 +184,7 @@ void c_interrupt_handler(void){
         INTERRUPT_PENDING &= 2;
     }
 
-    if (ip & 4) {
+    if (INTERRUPT_PENDING & 4) {
         // TODO: CMD button press
         cmd_pressed = 1;
 
@@ -192,10 +193,18 @@ void c_interrupt_handler(void){
     }
 }
 
-void handle_syscall(void) {
-    switch (a07_regs[0]) {
-    case 0: // exit
-        // TODO
+
+uint32_t c_syscall_handler(void) {
+    uint32_t ret = 0;
+
+    switch (a05_regs[0]) {
+    case 0: // fault
+        fault((const char*) a05_regs[1]);
+        break;
+    case 1: // int time_secs(void) TODO: Remove after demo
+        ret = timer;
         break;
     }
+
+    return ret;
 }

@@ -12,21 +12,6 @@
 
 
 __attribute__((always_inline)) static inline
-void csr_mepc_inc(void){
-    uint32_t* mepc;
-    asm volatile ("csrr %0, mepc" : "=r"(mepc));
-    mepc += 1;
-    asm volatile ("csrw mepc, %0" : : "r"(mepc));
-}
-
-__attribute__((always_inline)) static inline
-uint32_t csr_mcause_read(void){
-    uint32_t result;
-    asm volatile ("csrr %0, mcause" : "=r"(result));
-    return result;
-}
-
-__attribute__((always_inline)) static inline
 uint32_t csr_mstatus_read(void){
     uint32_t result;
     asm volatile ("csrr %0, mstatus" : "=r"(result));
@@ -41,13 +26,6 @@ void csr_mstatus_write(uint32_t val){
 __attribute__((always_inline)) static inline
 void csr_write_mie(uint32_t val){
     asm volatile ("csrw mie, %0" : : "r"(val));
-}
-
-__attribute__((always_inline)) static inline
-uint32_t csr_mip_read(void){
-    uint32_t result;
-    asm volatile ("csrr %0, mip" : "=r"(result));
-    return result;
 }
 
 __attribute__((always_inline)) static inline
