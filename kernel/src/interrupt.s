@@ -2,7 +2,8 @@
 .extern a07_regs
 .global _interrupt_handler
 _interrupt_handler:
-  addi sp, sp, -40
+  addi sp, sp, -44
+  sw gp, 40(sp)
   sw ra, 36(sp)
   sw t0, 32(sp)
   sw t1, 28(sp)
@@ -13,7 +14,10 @@ _interrupt_handler:
   sw a3, 8(sp)
   sw a4, 4(sp)
   sw a5, 0(sp)
- 
+
+  .option norelax
+  la gp, __global_pointer$
+
   la t1, a07_regs
   sw a0, 0(t1)
   sw a1, 4(t1)
@@ -22,7 +26,8 @@ _interrupt_handler:
   sw a4, 16(t1)
   sw a5, 20(t1)
   call c_interrupt_handler
- 
+
+  lw gp, 40(sp)
   lw ra, 36(sp)
   lw t0, 32(sp)
   lw t1, 28(sp)
@@ -33,5 +38,5 @@ _interrupt_handler:
   lw a3, 8(sp)
   lw a4, 4(sp)
   lw a5, 0(sp)
-  addi sp, sp, 40
+  addi sp, sp, 44
   mret
