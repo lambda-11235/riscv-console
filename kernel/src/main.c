@@ -12,7 +12,6 @@ const unsigned int TEXT_WIDTH = 64;
 
 
 int run_cartridge(void);
-const int (*CARTRIDGE)(void) = (int (*)(void))(0x20000000);
 volatile int start_program = 0;
 volatile int program_running = 0;
 
@@ -112,11 +111,12 @@ int main() {
 
 
 int run_cartridge(void) {
+    const int (*entry)(void) = (int (*)(void))(CARTRIDGE & ~0x3);
     int ret;
 
     program_running = 1;
 
-    ret = CARTRIDGE();
+    ret = entry();
 
     // Restore global pointer
     asm(".option norelax\n"
@@ -155,7 +155,8 @@ void c_interrupt_handler(void){
             fault("Cartridge removed, cleanup not implemented");
         }
 
-        start_program = 1;
+        if (CARTRIDGE & 0x1)
+            start_program = 1;
 
         // Clear interrupt
         INTERRUPT_PENDING &= 1;

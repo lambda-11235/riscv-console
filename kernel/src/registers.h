@@ -9,6 +9,7 @@
 #define MTIMECMP_LOW        (*((volatile uint32_t *)0x40000010))
 #define MTIMECMP_HIGH       (*((volatile uint32_t *)0x40000014))
 #define CONTROLLER          (*((volatile uint32_t *)0x40000018))
+#define CARTRIDGE           (*((volatile uint32_t *)0x4000001C))
 
 
 __attribute__((always_inline)) static inline
