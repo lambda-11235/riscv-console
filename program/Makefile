@@ -25,7 +25,7 @@ CFLAGS   += -O3
 endif
 
 LDFILE   = riscv32-console.ld
-INCLUDE  += -I $(INC_DIR)
+INCLUDE  += -I $(INC_DIR) -I ../tos/include
 CFLAGS   += -ffreestanding  -nostartfiles -nostdlib -nodefaultlibs
 LDFLAGS  +=
 LDFLAGS  += -Wl,--gc-sections -Wl,-T,$(LDFILE)
@@ -39,9 +39,9 @@ TARGET_OBJS =   $(OBJ_DIR)/main.o               \
 
 all: directories $(BIN_DIR)/$(TARGET_NAME)
 
-$(BIN_DIR)/$(TARGET_NAME): $(TARGET_OBJS)
-	$(CC) $(TARGET_OBJS) -o $(BIN_DIR)/$(TARGET_NAME) $(CFLAGS) $(DEFINES) $(LDFLAGS)
-	$(STRIP) $(BIN_DIR)/$(TARGET_NAME) -o $(BIN_DIR)/$(TARGET_NAME).strip
+$(BIN_DIR)/$(TARGET_NAME): $(TARGET_OBJS) ../tos/bin/riscv-tos.a
+	$(CC) $^ -o $@ $(CFLAGS) $(DEFINES) $(LDFLAGS)
+	$(STRIP) $@ -o $@.strip
 
 $(OBJ_DIR)/%.o: $(SRC_DIR)/%.s
 	$(CC) $(CFLAGS) $(DEFINES) $(INCLUDE) -c $< -o $@

@@ -3,6 +3,7 @@
 
 #include "fault.h"
 #include "registers.h"
+#include "time.h"
 #include "util.h"
 #include "vfs.h"
 
@@ -25,7 +26,7 @@ volatile int pal_sel = 0;
 
 // TODO: Remove after demo
 #define TICKS_PER_SEC 1000
-volatile int timer = 0;
+
 
 int main() {
     uint32_t ret;
@@ -41,6 +42,10 @@ int main() {
 
 
     file_system_init();
+
+    if (time_init() == -1) {
+        fault("Could not initialize timer");
+    }
 
 
     strcpy_(VIDEO_MEMORY, "Please insert cartridge");
@@ -138,8 +143,6 @@ void c_interrupt_handler(void){
         new_comp += TICKS_PER_SEC;
         MTIMECMP_HIGH = new_comp>>32;
         MTIMECMP_LOW = new_comp;
-
-        timer++;
         break;
     case 0xB: // ECALL
         fault("Syscall handled improperly as asynchronous interrupt");
@@ -202,8 +205,8 @@ uint32_t c_syscall_handler(void) {
     case 0: // fault
         fault((const char*) a05_regs[1]);
         break;
-    case 1: // int time_secs(void) TODO: Remove after demo
-        ret = timer;
+    case 4: //int time_us(void) TODO: Move to own file
+        ret = time_us((uint64_t*) a05_regs[1]);
         break;
     }
 
