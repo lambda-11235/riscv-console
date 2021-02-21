@@ -1,6 +1,7 @@
 #include <stdlib.h>
 #include <stdint.h>
 
+#include "alloc.h"
 #include "fault.h"
 #include "registers.h"
 #include "time.h"
@@ -28,6 +29,23 @@ volatile int pal_sel = 0;
 #define TICKS_PER_SEC 1000
 
 
+void mem_test(void) {
+    void* ptr1 = mem_alloc(16);
+    void* ptr2 = mem_alloc(16);
+    void* ptr3;
+
+    u32_to_str(VIDEO_MEMORY, (uint32_t) ptr1);
+    u32_to_str(VIDEO_MEMORY + TEXT_WIDTH, (uint32_t) ptr2);
+
+    mem_free(ptr1);
+    ptr1 = mem_alloc(16);
+    u32_to_str(VIDEO_MEMORY + 2*TEXT_WIDTH, (uint32_t) ptr1);
+
+    ptr3 = mem_alloc(16);
+    u32_to_str(VIDEO_MEMORY + 3*TEXT_WIDTH, (uint32_t) ptr3);
+}
+
+
 int main() {
     uint32_t ret;
     int i, j;
@@ -41,11 +59,13 @@ int main() {
     volatile uint32_t* ctrlr;
 
 
+    mem_init();
+    time_init();
     file_system_init();
 
-    if (time_init() == -1) {
-        fault("Could not initialize timer");
-    }
+
+    mem_test();
+    while(1) {}
 
 
     strcpy_(VIDEO_MEMORY, "Please insert cartridge");

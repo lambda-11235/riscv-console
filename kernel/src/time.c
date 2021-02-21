@@ -12,9 +12,8 @@ uint64_t get_time(void) {
 }
 
 
-int time_init(void) {
+void time_init(void) {
     start_time = get_time();
-    return 0;
 }
 
 
