@@ -1,6 +1,8 @@
 
 #include <stdint.h>
 
+#include "util.h"
+
 #include "alloc.h"
 
 
@@ -107,6 +109,9 @@ void mem_free(void* ptr) {
 
 
 void* mem_realloc(void* old_ptr, size_t new_size) {
-    // TODO
-    return NULL;
+    // TODO: Make this more efficient for some cases.
+    void* new_ptr = mem_alloc(new_size);
+    memcpy_(new_ptr, old_ptr, new_size);
+    mem_free(old_ptr);
+    return new_ptr;
 }

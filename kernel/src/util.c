@@ -25,6 +25,12 @@ int strcpy_(char* dest, const char* source) {
 }
 
 
+int memcpy_(uint8_t* dest, const uint8_t* source, size_t len) {
+    for (size_t i = 0; i < len; i++)
+        dest[i] = source[i];
+}
+
+
 int u32_to_str(char* buf, uint32_t x) {
     size_t i = 0;
     size_t j = 0;

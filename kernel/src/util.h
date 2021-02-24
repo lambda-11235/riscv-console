@@ -19,6 +19,8 @@ int streq(const char* str1, const char* str2);
  */
 int strcpy_(char* dest, const char* source);
 
+int memcpy_(uint8_t* dest, const uint8_t* source, size_t len);
+
 /**
  * Converts a uint32_t to a string.
  *
