@@ -25,7 +25,7 @@ CFLAGS   += -O3
 endif
 
 LDFILE   = riscv32-console.ld
-INCLUDE  += -I $(INC_DIR)
+INCLUDE  += -I $(INC_DIR) -I ../tos/include
 CFLAGS   += -ffreestanding  -nostartfiles -nostdlib -nodefaultlibs
 LDFLAGS  +=
 LDFLAGS  += -Wl,--gc-sections -Wl,-T,$(LDFILE)
@@ -38,6 +38,7 @@ TARGET_OBJS =   $(OBJ_DIR)/main.o               \
                 $(OBJ_DIR)/startup.o            \
                 $(OBJ_DIR)/alloc.o              \
                 $(OBJ_DIR)/fault.o              \
+                $(OBJ_DIR)/input.o              \
                 $(OBJ_DIR)/path_parse.o         \
                 $(OBJ_DIR)/time.o               \
                 $(OBJ_DIR)/util.o               \
