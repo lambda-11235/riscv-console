@@ -21,7 +21,7 @@ void time_init(void) {
 
 void time_on_timeout(void) {
     if (timeout_us > 0) {
-        uint64_t new_comp = (((uint64_t)MTIMECMP_HIGH)<<32) | MTIMECMP_LOW;
+        uint64_t new_comp = (((uint64_t)MTIME_HIGH)<<32) | MTIME_LOW;
         new_comp += timeout_us;
         MTIMECMP_HIGH = new_comp>>32;
         MTIMECMP_LOW = new_comp;
@@ -50,5 +50,8 @@ int sleep_us(uint64_t* period) {
 
 int set_timeout_us(uint64_t* period) {
     timeout_us = *period;
+
+    time_on_timeout();
+
     return 0;
 }
