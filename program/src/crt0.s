@@ -10,6 +10,7 @@ _start:
     call init
     nop
     call main
+    nop
 
     lw ra, 0(sp)
     addi sp, sp, 4

@@ -1,5 +1,6 @@
 
 #include <stdint.h>
+#include <stddef.h>
 
 #ifndef _TOS_STDLIB_H_
 #define _TOS_STDLIB_H_

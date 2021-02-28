@@ -42,8 +42,7 @@ TARGET_OBJS =   $(OBJ_DIR)/main.o               \
                 $(OBJ_DIR)/path_parse.o         \
                 $(OBJ_DIR)/time.o               \
                 $(OBJ_DIR)/util.o               \
-                $(OBJ_DIR)/vfs.o                \
-		$(OBJ_DIR)/vfs_impl.o
+                $(OBJ_DIR)/video.o
 
 all: directories $(BIN_DIR)/$(TARGET_NAME)
 

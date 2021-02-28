@@ -32,7 +32,9 @@ LDFLAGS  += -Wl,--gc-sections -Wl,-T,$(LDFILE)
 TARGET_NAME = riscv-tos.a
 
 TARGET_OBJS =   $(OBJ_DIR)/syscall.o \
-                $(OBJ_DIR)/stdlib.o
+                $(OBJ_DIR)/input.o   \
+                $(OBJ_DIR)/stdlib.o  \
+                $(OBJ_DIR)/video.o
 
 all: directories $(BIN_DIR)/$(TARGET_NAME)
 

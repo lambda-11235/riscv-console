@@ -3,14 +3,14 @@
 
 #include "alloc.h"
 #include "fault.h"
+#include "input.h"
 #include "registers.h"
 #include "time.h"
 #include "util.h"
-#include "vfs.h"
+#include "video.h"
 
-volatile char *VIDEO_MEMORY = (volatile char *)(0x50000000 + 0xFE800);
-const unsigned int TEXT_HEIGHT = 36;
-const unsigned int TEXT_WIDTH = 64;
+
+#define OS_VERSION 1
 
 
 int run_cartridge(void);
@@ -21,54 +21,18 @@ volatile uint32_t c_mcause;
 volatile uint32_t c_mip;
 volatile uint32_t a05_regs[6];
 
-volatile int cmd_pressed = 0;
-volatile int draw = 0;
-volatile int pal_sel = 0;
-
 // TODO: Remove after demo
 #define TICKS_PER_SEC 1000
 
 
-void mem_test(void) {
-    void* ptr1 = mem_alloc(16);
-    void* ptr2 = mem_alloc(16);
-    void* ptr3;
-
-    u32_to_str(VIDEO_MEMORY, (uint32_t) ptr1);
-    u32_to_str(VIDEO_MEMORY + TEXT_WIDTH, (uint32_t) ptr2);
-
-    mem_free(ptr1);
-    ptr1 = mem_alloc(16);
-    u32_to_str(VIDEO_MEMORY + 2*TEXT_WIDTH, (uint32_t) ptr1);
-
-    ptr3 = mem_alloc(16);
-    u32_to_str(VIDEO_MEMORY + 3*TEXT_WIDTH, (uint32_t) ptr3);
-}
-
-
 int main() {
+    char buf[256];
     uint32_t ret;
-    int i, j;
-    int mode_id;
-    int pal_id;
-    int controls_id;
-    int ctrlr_id;
-    volatile uint32_t* mode;
-    volatile uint32_t* palette;
-    volatile uint32_t* controls;
-    volatile uint32_t* ctrlr;
-
 
     mem_init();
     time_init();
-    file_system_init();
 
-
-    mem_test();
-    while(1) {}
-
-
-    strcpy_(VIDEO_MEMORY, "Please insert cartridge");
+    video_write_text(0, 0, "Please insert cartridge");
 
     while(1) {
         if (start_program) {
@@ -76,58 +40,14 @@ int main() {
             ret = run_cartridge();
             // TODO: Cleanup
 
-            // TODO: Remove after demo
-            for (i = 0; i < TEXT_WIDTH; i++)
-                VIDEO_MEMORY[i] = 0;
+            video_set_mode(TEXT_MODE);
+            video_clear_text();
+            video_write_text(0, 0, "Program exited with");
 
-            cmd_pressed = 0;
-            u32_to_str(VIDEO_MEMORY + strcpy_(VIDEO_MEMORY, "Program returned "), ret);
-            strcpy_(VIDEO_MEMORY + TEXT_WIDTH, "Press CMD to continue");
-            strcpy_(VIDEO_MEMORY + 3*TEXT_WIDTH, "WARNING: Do not continue if you have epilepsy triggered by flashing lights");
-            while (!cmd_pressed) {}
-
-            break;
+            u32_to_str(buf, ret);
+            video_write_text(4, 1, buf);
         }
     }
-
-    // This shows how to use the file system to interface with graphics.
-    // My idea is that a user level library will memmap to gain access to the pointers,
-    // and maintain the mapping for the life of the program.
-    mode_id = open("/sys/dev/video/mode", READ|WRITE);
-    if (mode_id == -1) fault("Could not open mode");
-    mode = memmap(mode_id, 0);
-    if (mode == NULL) fault("Could not memmap mode");
-
-    pal_id = open("/sys/dev/video/graphic/palette/background0", READ|WRITE);
-    if (pal_id == -1) fault("Could not open palette");
-    palette = memmap(pal_id, 0);
-    if (palette == NULL) fault("Could not memmap palette");
-
-    controls_id = open("/sys/dev/video/graphic/background0/control", READ|WRITE);
-    if (controls_id == -1) fault("Could not open controls");
-    controls = memmap(controls_id, 0);
-    if (controls == NULL) fault("Could not memmap controls");
-
-
-    ctrlr_id = open("/sys/dev/input/controller/ctrlr0", READ|WRITE);
-    if (ctrlr_id == -1) fault("Could not open ctrlr0");
-    ctrlr = memmap(ctrlr_id, 0);
-    if (ctrlr == NULL) fault("Could not memmap ctrlr0");
-
-    *mode = 1;
-
-    palette[0] = 0xFFFFFFFF;
-    palette[1] = 0xFFFF0000;
-    palette[2] = 0xFF00FF00;
-    palette[3] = 0xFF0000FF;
-
-    *controls = (288<<12) | (512 << 2);
-
-    close(mode_id);
-    close(pal_id);
-    close(controls_id);
-
-    draw = 1;
 
     while(1) {}
 
@@ -135,34 +55,49 @@ int main() {
 }
 
 
+uint32_t old_sp;
+uint32_t new_sp;
 int run_cartridge(void) {
     const int (*entry)(void) = (int (*)(void))(CARTRIDGE & ~0x3);
     int ret;
+    char buf[256];
+    int tmp;
 
     program_running = 1;
 
+    asm("mv %0, sp" : : "r"(tmp));
+    old_sp = tmp;
     ret = entry();
 
     // Restore global pointer
     asm(".option norelax\n"
         "la gp, __global_pointer$");
+    asm("mv %0, sp" : : "r"(tmp));
+    new_sp = tmp;
 
     program_running = 0;
+
+    if (old_sp != new_sp) {
+        video_clear_text();
+        video_write_text(0, 0, "sp mismatch");
+
+        u32_to_str(buf, old_sp);
+        video_write_text(4, 1, buf);
+        u32_to_str(buf, new_sp);
+        video_write_text(4, 2, buf);
+        while (1) {}
+    }
 
     return ret;
 }
 
 
 void c_interrupt_handler(void){
-    uint64_t new_comp;
     uint32_t ret = 0;
 
     switch (c_mcause) {
     case 0x80000007: // Timer Interrupt
-        new_comp = (((uint64_t)MTIMECMP_HIGH)<<32) | MTIMECMP_LOW;
-        new_comp += TICKS_PER_SEC;
-        MTIMECMP_HIGH = new_comp>>32;
-        MTIMECMP_LOW = new_comp;
+        time_on_timeout();
         break;
     case 0xB: // ECALL
         fault("Syscall handled improperly as asynchronous interrupt");
@@ -187,22 +122,6 @@ void c_interrupt_handler(void){
 
     if (INTERRUPT_PENDING & 2) {
         // TODO: Video interrupt
-        if (draw) {
-            int data_id;
-            volatile uint8_t* data;
-
-            data_id = open("/sys/dev/video/graphic/background0/data", READ|WRITE);
-            if (data_id == -1) fault("Could not open data");
-            data = memmap(data_id, 0);
-            if (data == NULL) fault("Could not memmap data");
-
-            for (int i = 0; i < 147456; i++)
-                data[i] = pal_sel;
-
-            close(data_id);
-
-            pal_sel = (pal_sel + 1)%4;
-        }
 
         // Clear interrupt
         INTERRUPT_PENDING &= 2;
@@ -210,7 +129,6 @@ void c_interrupt_handler(void){
 
     if (INTERRUPT_PENDING & 4) {
         // TODO: CMD button press
-        cmd_pressed = 1;
 
         // Clear interrupt
         INTERRUPT_PENDING &= 4;
@@ -222,11 +140,69 @@ uint32_t c_syscall_handler(void) {
     uint32_t ret = 0;
 
     switch (a05_regs[0]) {
-    case 0: // fault
+    case 0:
+        ret = OS_VERSION;
+        break;
+    case 1:
         fault((const char*) a05_regs[1]);
         break;
-    case 4: //int time_us(void) TODO: Move to own file
+    case 2:
+        ret = (uint32_t) mem_alloc((size_t) a05_regs[1]);
+        break;
+    case 3:
+        mem_free((void*) a05_regs[1]);
+        break;
+    case 4:
+        ret = (uint32_t) mem_realloc((void*) a05_regs[1], (size_t) a05_regs[2]);
+        break;
+    case 5:
         ret = time_us((uint64_t*) a05_regs[1]);
+        break;
+    case 6:
+        ret = sleep_us((uint64_t*) a05_regs[1]);
+        break;
+    case 7:
+        ret = set_timeout_us((uint64_t*) a05_regs[1]);
+        break;
+
+    // Input
+    case 128:
+        ret = input_ctlr_poll((struct input_ctlr*) a05_regs[1]);
+        break;
+
+    // Video
+    case 256:
+        ret = video_set_mode((enum video_mode) a05_regs[1]);
+        break;
+    case 257:
+        ret = video_clear_text();
+        break;
+    case 258:
+        ret = video_write_text(a05_regs[1], a05_regs[2], (char*) a05_regs[3]);
+        break;
+    case 259:
+        ret = video_write_bg_palette_data(a05_regs[1], (uint32_t*) a05_regs[2]);
+        break;
+    case 260:
+        ret = video_write_sprite_palette_data(a05_regs[1], (uint32_t*) a05_regs[2]);
+        break;
+    case 261:
+        ret = video_write_bg_data(a05_regs[1], (uint8_t*) a05_regs[2]);
+        break;
+    case 262:
+        ret = video_write_bg_control(a05_regs[1], (struct bg_control*) a05_regs[2]);
+        break;
+    case 263:
+        ret = video_write_ls_data(a05_regs[1], (uint8_t*) a05_regs[2]);
+        break;
+    case 264:
+        ret = video_write_ls_control(a05_regs[1], (struct ls_control*) a05_regs[2]);
+        break;
+    case 265:
+        ret = video_write_ss_data(a05_regs[1], (uint8_t*) a05_regs[2]);
+        break;
+    case 266:
+        ret = video_write_ss_control(a05_regs[1], (struct ss_control*) a05_regs[2]);
         break;
     }
 

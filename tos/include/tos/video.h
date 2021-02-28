@@ -81,18 +81,21 @@ int video_write_sprite_palette_data(int pal_id, uint32_t data[SPRITE_PALETTE_SIZ
  */
 int video_write_bg_data(int bg_id, uint8_t data[BG_SIZE]);
 
+
+struct bg_control {
+    int x; int y; int z;
+    int palette;
+};
+
 /**
  * @brief Writes background control information.
  *
  * @param bg_id The ID of the background to modify.
- * @param x The x coordinate.
- * @param y The y coordinate.
- * @param z The z coordinate (used for overlapping and transparency).
- * @param palette The background palette to use.
+ * @param control The control data to write.
  *
  * @return On success returns 0, and on failure returns -1.
  */
-int video_write_bg_control(int bg_id, int x, int y, int z, int palette);
+int video_write_bg_control(int bg_id, struct bg_control* control);
 
 
 /// Number of pixels in a large sprite.
@@ -108,19 +111,22 @@ int video_write_bg_control(int bg_id, int x, int y, int z, int palette);
  */
 int video_write_ls_data(int ls_id, uint8_t data[LS_SIZE]);
 
+
+struct ls_control {
+    int h; int w;
+    int x; int y;
+    int palette;
+};
+
 /**
  * @brief Writes large sprite control information.
  *
  * @param ls_id The ID of the large sprite to modify.
- * @param x The x coordinate.
- * @param y The y coordinate.
- * @param h The sprite's height.
- * @param w The sprite's width.
- * @param palette The sprite palette to use.
+ * @param control The control data to write.
  *
  * @return On success returns 0, and on failure returns -1.
  */
-int video_write_ls_control(int ls_id, int h, int w, int x, int y, int palette);
+int video_write_ls_control(int ls_id, struct ls_control* control);
 
 
 /// Number of pixels in a small sprite.
@@ -136,19 +142,22 @@ int video_write_ls_control(int ls_id, int h, int w, int x, int y, int palette);
  */
 int video_write_ss_data(int ss_id, uint8_t data[SS_SIZE]);
 
+
+struct ss_control {
+    int h; int w;
+    int x; int y;
+    int palette;
+};
+
 /**
  * @brief Writes small sprite control information.
  *
  * @param ss_id The ID of the small sprite to modify.
- * @param x The x coordinate.
- * @param y The y coordinate.
- * @param h The sprite's height.
- * @param w The sprite's width.
- * @param palette The sprite palette to use.
+ * @param control The control data to write.
  *
  * @return On success returns 0, and on failure returns -1.
  */
-int video_write_ss_control(int ss_id, int h, int w, int x, int y, int palette);
+int video_write_ss_control(int ss_id, struct ss_control* control);
 
 
 #endif /* _TOS_VIDEO_H */

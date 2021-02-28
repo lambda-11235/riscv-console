@@ -149,7 +149,7 @@ int file_system_init(void) {
                    (struct entry*[]) {&sys_dev_input_controller_ctrlr0_entry}, 1);
     init_directory(&sys_dev_input_entry, "input",
                    (struct entry*[]) {&sys_dev_input_controller_entry}, 1);
-    
+
     init_directory(&sys_dev_entry, "dev",
                    (struct entry*[]) {&sys_dev_input_entry, &sys_dev_video_entry}, 2);
     init_directory(&sys_entry, "sys",

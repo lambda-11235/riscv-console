@@ -41,7 +41,7 @@ _interrupt_handler:
   lw t1, 8(sp)
   lw t2, 4(sp)
   lw gp, 0(sp)
-  add sp, sp, 20
+  addi sp, sp, 20
 
   mret
 

@@ -21,7 +21,7 @@ void fault(const char* msg) {
         TEXT_MEMORY[i] = start[i];
 
     j = i;
-    
+
     for (i = 0; msg[i] != 0; i++)
         TEXT_MEMORY[i+j] = msg[i];
 

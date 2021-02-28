@@ -2,72 +2,92 @@
 #include <stdint.h>
 #include <stddef.h>
 
+#include <tos/input.h>
 #include <tos/stdlib.h>
+#include <tos/video.h>
 
 
-const int ret = 17;
-
-volatile char *VIDEO_MEMORY = (volatile char *)(0x50000000 + 0xFE800);
-volatile uint32_t* ctrlr0 = (uint32_t*) 0x40000018;
-char* msg = "Press any button (except command) to return ";
-
-
-// FIXME: move common code to both kernel and application somewhere else.
-int u32_to_str(char* buf, uint32_t x) {
-    size_t i = 0;
-    size_t j = 0;
-    char tmp;
-
-    if (x == 0) {
-        buf[0] = '0';
-        return 0;
-    }
-
-    for (i = 0; x > 0; i++) {
-        buf[i] = '0' + x%10;
-        x /= 10;
-    }
-
-    i--;
-
-    while (j < i) {
-        tmp = buf[j];
-        buf[j] = buf[i];
-        buf[i] = tmp;
-
-        j++;
-        i--;
-    }
-
-    return 0;
-}
-
-
-int i32_to_str(char* buf, int32_t x) {
-    if (x < 0) {
-        buf[0] = '-';
-        buf++;
-        x = -x;
-    }
-
-    return u32_to_str(buf, x);
-}
+void setup_graphics(void);
 
 int main() {
-    int i, j;
-    uint64_t t;
-    char buf[1024];
+    uint64_t last_time, time;
+    struct input_ctlr ctlr;
+    struct bg_control bgc;
+    struct ls_control lsc;
+    int vx = 1; int vy = 1;
 
-    for (i = 0; msg[i] != 0; i++)
-        VIDEO_MEMORY[i] = msg[i];
+    video_set_mode(TEXT_MODE);
+    video_clear_text();
+    video_write_text(0, 0, "Press left button to start simulation,");
+    video_write_text(2, 1, "then press right button to return to kernel.");
 
-    while(!(*ctrlr0)) {
-        time_us(&t);
-        u32_to_str(buf, ((uint32_t) t)/1000000);
+    do {
+        input_ctlr_poll(&ctlr);
+    } while (!ctlr.left);
 
-        for (j = 0; buf[j] != 0; j++)
-            VIDEO_MEMORY[i+j] = buf[j];
-    };
-    
-    return t;
+    video_set_mode(GRAPHICS_MODE);
+    setup_graphics();
+
+    bgc.x = 0; bgc.y = 0; bgc.z = 0;
+    bgc.palette = 0;
+    video_write_bg_control(0, &bgc);
+
+    lsc.x = 0; lsc.y = 0;
+    lsc.h = 64; lsc.w = 64;
+    lsc.palette = 0;
+    video_write_ls_control(0, &lsc);
+
+    time_us(&last_time);
+
+    do {
+        int dt, dx, dy;
+
+        time_us(&time);
+        dt = (int) (time - last_time);
+        dx = vx*dt/10000;
+        dy = vy*dt/10000;
+
+        if (dx != 0 && dy != 0) {
+            last_time = time;
+
+            lsc.x += dx;
+            lsc.y += dy;
+
+            if (lsc.x < 0)
+                vx = 1;
+            else if (lsc.x > 512-64)
+                vx = -1;
+
+            if (lsc.y < 0)
+                vy = 1;
+            else if (lsc.y > 288-64)
+                vy = -1;
+        }
+
+        video_write_ls_control(0, &lsc);
+
+        input_ctlr_poll(&ctlr);
+    } while (!ctlr.right);
+
+    return ((int) time)/1000000;
+}
+
+
+void setup_graphics(void) {
+    uint32_t* palette = mem_alloc(sizeof(uint32_t)*SPRITE_PALETTE_SIZE);
+    uint8_t* bg_data = mem_alloc(BG_SIZE);
+    uint8_t* ls_data = mem_alloc(LS_SIZE);
+
+    palette[1] = 0xffff0000;
+    palette[2] = 0xff0000ff;
+
+    for (size_t i = 0; i < BG_SIZE; i++)
+        bg_data[i] = 1;
+    for (size_t i = 0; i < LS_SIZE; i++)
+        ls_data[i] = 2;
+
+    video_write_bg_palette_data(0, palette);
+    video_write_sprite_palette_data(0, palette);
+    video_write_bg_data(0, bg_data);
+    video_write_ls_data(0, ls_data);
 }
