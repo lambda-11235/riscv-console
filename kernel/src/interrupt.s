@@ -18,8 +18,13 @@ _interrupt_handler:
   sw t2, 4(sp)
   sw gp, 0(sp)
 
+  mv t0, gp
+
   .option norelax
   la gp, __global_pointer$
+
+  la t1, c_save_user_gp
+  sw t0, 0(t1)
 
   csrr t0, mip
   la t1, c_mip

@@ -5,6 +5,7 @@
 #include "fault.h"
 #include "input.h"
 #include "registers.h"
+#include "signal.h"
 #include "time.h"
 #include "util.h"
 #include "video.h"
@@ -17,6 +18,7 @@ int run_cartridge(void);
 volatile int start_program = 0;
 volatile int program_running = 0;
 
+volatile uint32_t c_save_user_gp;
 volatile uint32_t c_mcause;
 volatile uint32_t c_mip;
 volatile uint32_t a05_regs[6];
@@ -61,6 +63,7 @@ void c_interrupt_handler(void){
     switch (c_mcause) {
     case 0x80000007: // Timer Interrupt
         time_on_timeout();
+        //signal_raise(1);
         break;
     case 0xB: // ECALL
         fault("Syscall handled improperly as asynchronous interrupt");
@@ -79,19 +82,23 @@ void c_interrupt_handler(void){
         if (CARTRIDGE & 0x1)
             start_program = 1;
 
+        signal_raise(2);
+
         // Clear interrupt
         INTERRUPT_PENDING &= 1;
     }
 
     if (INTERRUPT_PENDING & 2) {
-        // TODO: Video interrupt
+        // Video interrupt
+        signal_raise(3);
 
         // Clear interrupt
         INTERRUPT_PENDING &= 2;
     }
 
     if (INTERRUPT_PENDING & 4) {
-        // TODO: CMD button press
+        // CMD button press
+        signal_raise(4);
 
         // Clear interrupt
         INTERRUPT_PENDING &= 4;
@@ -166,6 +173,14 @@ uint32_t c_syscall_handler(void) {
         break;
     case 266:
         ret = video_write_ss_control(a05_regs[1], (struct ss_control*) a05_regs[2]);
+        break;
+
+    // Signals
+    case 512:
+        ret = signal_register(a05_regs[1], (void (*)(int)) a05_regs[2]);
+        break;
+    case 513:
+        ret = signal_raise(a05_regs[1]);
         break;
     }
 

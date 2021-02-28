@@ -3,23 +3,31 @@
 #include <stddef.h>
 
 #include <tos/input.h>
+#include <tos/signal.h>
 #include <tos/stdlib.h>
 #include <tos/video.h>
 
 
+#define VX_MAG 3
+#define VY_MAG 1
+#define SLOW_DOWN 50000
+
+volatile struct bg_control bgc;
+volatile struct ls_control lsc;
+
+void on_video(int sig);
 void setup_graphics(void);
 
 int main() {
     uint64_t last_time, time;
     struct input_ctlr ctlr;
-    struct bg_control bgc;
-    struct ls_control lsc;
-    int vx = 1; int vy = 1;
+    int vx = VX_MAG; int vy = VY_MAG;
 
     video_set_mode(TEXT_MODE);
     video_clear_text();
     video_write_text(0, 0, "Press left button to start simulation,");
     video_write_text(2, 1, "then press right button to return to kernel.");
+    video_write_text(2, 2, "Return value will be time since system start.");
 
     do {
         input_ctlr_poll(&ctlr);
@@ -37,6 +45,7 @@ int main() {
     lsc.palette = 0;
     video_write_ls_control(0, &lsc);
 
+    signal_register(3, on_video);
     time_us(&last_time);
 
     do {
@@ -44,8 +53,8 @@ int main() {
 
         time_us(&time);
         dt = (int) (time - last_time);
-        dx = vx*dt/10000;
-        dy = vy*dt/10000;
+        dx = vx*dt/SLOW_DOWN;
+        dy = vy*dt/SLOW_DOWN;
 
         if (dx != 0 && dy != 0) {
             last_time = time;
@@ -54,22 +63,25 @@ int main() {
             lsc.y += dy;
 
             if (lsc.x < 0)
-                vx = 1;
+                vx = VX_MAG;
             else if (lsc.x > 512-64)
-                vx = -1;
+                vx = -VX_MAG;
 
             if (lsc.y < 0)
-                vy = 1;
+                vy = VY_MAG;
             else if (lsc.y > 288-64)
-                vy = -1;
+                vy = -VY_MAG;
         }
-
-        video_write_ls_control(0, &lsc);
 
         input_ctlr_poll(&ctlr);
     } while (!ctlr.right);
 
     return ((int) time)/1000000;
+}
+
+
+void on_video(int sig) {
+    video_write_ls_control(0, &lsc);
 }
 
 
@@ -90,4 +102,8 @@ void setup_graphics(void) {
     video_write_sprite_palette_data(0, palette);
     video_write_bg_data(0, bg_data);
     video_write_ls_data(0, ls_data);
+
+    mem_free(palette);
+    mem_free(bg_data);
+    mem_free(ls_data);
 }

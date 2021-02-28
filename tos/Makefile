@@ -33,6 +33,7 @@ TARGET_NAME = riscv-tos.a
 
 TARGET_OBJS =   $(OBJ_DIR)/syscall.o \
                 $(OBJ_DIR)/input.o   \
+                $(OBJ_DIR)/signal.o  \
                 $(OBJ_DIR)/stdlib.o  \
                 $(OBJ_DIR)/video.o
 
