@@ -40,6 +40,7 @@ TARGET_OBJS =   $(OBJ_DIR)/main.o               \
                 $(OBJ_DIR)/fault.o              \
                 $(OBJ_DIR)/input.o              \
                 $(OBJ_DIR)/path_parse.o         \
+                $(OBJ_DIR)/run_cartridge.o      \
                 $(OBJ_DIR)/time.o               \
                 $(OBJ_DIR)/util.o               \
                 $(OBJ_DIR)/video.o

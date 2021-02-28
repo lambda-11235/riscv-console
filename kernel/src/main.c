@@ -55,43 +55,6 @@ int main() {
 }
 
 
-uint32_t old_sp;
-uint32_t new_sp;
-int run_cartridge(void) {
-    const int (*entry)(void) = (int (*)(void))(CARTRIDGE & ~0x3);
-    int ret;
-    char buf[256];
-    int tmp;
-
-    program_running = 1;
-
-    asm("mv %0, sp" : : "r"(tmp));
-    old_sp = tmp;
-    ret = entry();
-
-    // Restore global pointer
-    asm(".option norelax\n"
-        "la gp, __global_pointer$");
-    asm("mv %0, sp" : : "r"(tmp));
-    new_sp = tmp;
-
-    program_running = 0;
-
-    if (old_sp != new_sp) {
-        video_clear_text();
-        video_write_text(0, 0, "sp mismatch");
-
-        u32_to_str(buf, old_sp);
-        video_write_text(4, 1, buf);
-        u32_to_str(buf, new_sp);
-        video_write_text(4, 2, buf);
-        while (1) {}
-    }
-
-    return ret;
-}
-
-
 void c_interrupt_handler(void){
     uint32_t ret = 0;
 
