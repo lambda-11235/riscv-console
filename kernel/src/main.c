@@ -11,7 +11,7 @@
 #include "video.h"
 
 
-#define OS_VERSION 1
+#define OS_VERSION 3
 
 
 int run_cartridge(void);

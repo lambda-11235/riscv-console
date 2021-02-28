@@ -1,22 +1,23 @@
 
 ## Demo
 
-WARNING: Do not run demo if you have epilepsy triggered by flashing lights.
-
 To run the demo application do the following steps.
 
 1. Build and run the kernel found in `./kernel/`.
 
 2. Build and insert the program found in `./program/`.
 
-3. Observe that the program will return the number of seconds since the
-   program started, which it is counting.
+3. Press the left button to initiate a graphics demo.
 
-4. Press any button to exit the program.
+4. The graphics demo will show a block bouncing around the screen.
 
-5. Observe the return value the OS got.
-
-6. Press CMD when you're ready to continue.
-
-7. At this point you will be placed in graphics mode, and the
-   background color will change every video interrupt.
+5. Press the right button to return to the kernel. The return value
+   will be the system time.
+   
+6. The user program uses syscalls for getting the current time,
+   getting input, drawing text to screen, managing the graphics, and
+   registering user upcalls.
+   
+   
+At this point threads are the only planned feature that are
+unimplemented. I plan on finishing them in phase 4.
