@@ -13,9 +13,7 @@ run_cartridge:
 
   li t0, 0x4000001C
   lw t1, 0(t0)
-  li t0, 3
-  not t0, t0
-  and t1, t1, t0
+  andi t1, t1, (~3)
   jalr t1
 
   .option norelax
