@@ -1,5 +1,6 @@
 #include <stdlib.h>
 #include <stdint.h>
+#include <stdio.h>
 
 #include "alloc.h"
 #include "fault.h"
@@ -7,7 +8,6 @@
 #include "registers.h"
 #include "signal.h"
 #include "time.h"
-#include "util.h"
 #include "video.h"
 
 
@@ -46,7 +46,7 @@ int main() {
             video_clear_text();
             video_write_text(0, 0, "Program exited with");
 
-            u32_to_str(buf, ret);
+            sprintf(buf, "%X", ret);
             video_write_text(4, 1, buf);
         }
     }

@@ -1,7 +1,6 @@
 
 #include <stddef.h>
-
-#include "util.h"
+#include <string.h>
 
 #include "video.h"
 
@@ -33,30 +32,43 @@ int video_clear_text(void) {
 
 
 int video_write_text(int x, int y, char* str) {
-    return strcpy_(TEXT_DATA + x + TEXT_WIDTH*y, str);
+    return strcpy(TEXT_DATA + x + TEXT_WIDTH*y, str);
 }
 
 
 int video_write_bg_palette_data(int pal_id, uint32_t data[BG_PALETTE_SIZE]) {
     size_t amount = sizeof(uint32_t)*BG_PALETTE_SIZE;
-    return memcpy_((uint8_t*) (BG_PALETTE_START + amount*pal_id),
-                   (uint8_t*) data,
-                   amount);
+
+    if (memcpy((uint8_t*) (BG_PALETTE_START + amount*pal_id),
+               (uint8_t*) data,
+               amount) == NULL) {
+        return -1;
+    } else {
+        return 0;
+    }
 }
 
 
 int video_write_sprite_palette_data(int pal_id, uint32_t data[SPRITE_PALETTE_SIZE]) {
     size_t amount = sizeof(uint32_t)*SPRITE_PALETTE_SIZE;
-    return memcpy_((uint8_t*) (SPRITE_PALETTE_START + amount*pal_id),
-                   (uint8_t*) data,
-                   amount);
+    if (memcpy((uint8_t*) (SPRITE_PALETTE_START + amount*pal_id),
+               (uint8_t*) data,
+               amount) == NULL) {
+        return -1;
+    } else {
+        return 0;
+    }
 }
 
 
 int video_write_bg_data(int bg_id, uint8_t data[BG_SIZE]) {
-    return memcpy_(BG_DATA_START + bg_id*BG_SIZE,
-                   data,
-                   BG_SIZE);
+    if (memcpy(BG_DATA_START + bg_id*BG_SIZE,
+               data,
+               BG_SIZE) == NULL) {
+        return -1;
+    } else {
+        return 0;
+    }
 }
 
 
@@ -73,9 +85,13 @@ int video_write_bg_control(int bg_id, struct bg_control* control) {
 
 
 int video_write_ls_data(int ls_id, uint8_t data[LS_SIZE]) {
-    return memcpy_(LS_DATA_START + ls_id*LS_SIZE,
-                   data,
-                   LS_SIZE);
+    if (memcpy(LS_DATA_START + ls_id*LS_SIZE,
+               data,
+               LS_SIZE) == NULL) {
+        return -1;
+    } else {
+        return 0;
+    }
 }
 
 
@@ -93,9 +109,13 @@ int video_write_ls_control(int ls_id, struct ls_control* control) {
 
 
 int video_write_ss_data(int ss_id, uint8_t data[SS_SIZE]) {
-    return memcpy_(SS_DATA_START + ss_id*SS_SIZE,
-                   data,
-                   SS_SIZE);
+    if (memcpy(SS_DATA_START + ss_id*SS_SIZE,
+               data,
+               SS_SIZE) == NULL) {
+        return -1;
+    } else {
+        return 0;
+    }
 }
 
 
