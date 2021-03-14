@@ -31,7 +31,8 @@ SECTIONS
         i.e ORIGIN(RAM) + LENGTH(RAM)-1 until it comes in contact with .bss or .data
         in which case a buffer overflow occurs
     */
-    PROVIDE( __stack_top = ORIGIN(RAM) + LENGTH(RAM));
+    PROVIDE( __init_stack_top = ORIGIN(RAM) + LENGTH(RAM));
+    PROVIDE( __interrupt_stack_top = ORIGIN(RAM) + LENGTH(RAM) - 0x400);
 
     /* constants  and other code stored in FLASH */
     .text :

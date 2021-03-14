@@ -16,8 +16,10 @@ run_cartridge:
   andi t1, t1, (~3)
   jalr t1
 
+  .option push
   .option norelax
   la gp, __global_pointer$
+  .option pop
 
   la t0, program_running
   li t1, 0

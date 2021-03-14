@@ -10,11 +10,8 @@
 
 volatile int cmd_pressed;
 
-void on_command(int sig) {
-    cmd_pressed = 1;
-}
-
 int main() {
+    struct input_ctlr ctlr = {0};
     char buf[256];
     cmd_pressed = 0;
         
@@ -23,9 +20,9 @@ int main() {
     video_clear_text();
     video_write_text(0, 0, buf);
 
-    signal_register(4, on_command);
-
-    while (!cmd_pressed) {}
+    while (!ctlr.up) {
+        input_ctlr_poll(&ctlr);
+    }
 
     return 0;
 }
