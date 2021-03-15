@@ -11,13 +11,13 @@ uint64_t timeout_ticks;
 int no_timeout;
 
 
-inline uint64_t get_time(void) {
-    return (((uint64_t)MTIME_HIGH)<<32) | MTIME_LOW;
+inline void get_time(uint64_t* t) {
+    *t = (((uint64_t)MTIME_HIGH)<<32) | MTIME_LOW;
 }
 
 
 void time_init(void) {
-    start_time = get_time();
+    get_time(&start_time);
     timeout_ticks = MIN_TIMEOUT_TICKS;
     no_timeout = 0;
 
@@ -32,7 +32,8 @@ void time_on_timeout(void) {
     } else if (timeout_ticks < MIN_TIMEOUT_TICKS) {
         fault("timeout_ticks less than MIN_TIMEOUT_TICKS");
     } else {
-        uint64_t new_comp = get_time();
+        uint64_t new_comp;
+        get_time(&new_comp);
         new_comp += timeout_ticks;
         MTIMECMP_HIGH = new_comp>>32;
         MTIMECMP_LOW = new_comp;
@@ -41,16 +42,22 @@ void time_on_timeout(void) {
 
 
 int time_us(uint64_t* t) {
-    *t = USECS_PER_TICK*(get_time() - start_time);
+    get_time(t);
+    *t -= start_time;
+    *t *= USECS_PER_TICK;
     return 0;
 }
 
 
 // TODO: Merge with threading
 int sleep_us(uint64_t* period) {
-    uint64_t end = get_time() + (*period)/USECS_PER_TICK;
+    uint64_t t, end;
+    get_time(&t);
+    end = t + (*period)/USECS_PER_TICK;
 
-    while (get_time() < end) {}
+    while (t < end) {
+        get_time(&t);
+    }
 
     return 0;
 }

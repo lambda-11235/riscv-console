@@ -11,7 +11,7 @@
  * Initializes threading library.
  * Mainly this just creates a thread for the kernel process.
  */
-int thread_init(void);
+void thread_init(void);
 
 /**
  * Should be called at the start of interrupt handler.

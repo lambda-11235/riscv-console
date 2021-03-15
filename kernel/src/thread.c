@@ -61,6 +61,8 @@ int thread_queue_push(struct thread_queue* queue, struct thread* thread) {
         queue->tail->next = thread;
         queue->tail = thread;
     }
+
+    return 0;
 }
 
 
@@ -97,7 +99,7 @@ int thread_queue_empty(struct thread_queue* queue) {
 void thread_wrapper(int (*func)(void*), void* data);
 
 
-int thread_init(void) {
+void thread_init(void) {
     for (size_t i = 0; i < MAX_THREADS; i++) {
         threads[i].flags = 0;
         threads[i].tid = i;

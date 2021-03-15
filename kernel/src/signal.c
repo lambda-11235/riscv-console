@@ -21,6 +21,7 @@ void signal_init(void) {
 
 int signal_register(int sig, void (*handler)(int)) {
     handlers[sig] = handler;
+    return 0;
 }
 
 

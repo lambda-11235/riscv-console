@@ -15,4 +15,6 @@ int input_ctlr_poll(struct input_ctlr* ev) {
     ev->right = (status >> 3) & 1;
     ev->up = (status >> 1) & 1;
     ev->down = (status >> 2) & 1;
+
+    return 0;
 }

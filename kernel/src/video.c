@@ -20,6 +20,7 @@ volatile uint32_t* MODE_CONTROL = (uint32_t*) 0x500FF414;
 
 int video_set_mode(enum video_mode mode) {
     *MODE_CONTROL = mode;
+    return 0;
 }
 
 
@@ -32,7 +33,8 @@ int video_clear_text(void) {
 
 
 int video_write_text(int x, int y, char* str) {
-    return strcpy(TEXT_DATA + x + TEXT_WIDTH*y, str);
+    strcpy((char*) (TEXT_DATA + x + TEXT_WIDTH*y), str);
+    return 0;
 }
 
 

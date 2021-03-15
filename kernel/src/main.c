@@ -52,7 +52,7 @@ int main() {
             video_clear_text();
             video_write_text(0, 0, "Program exited with");
 
-            sprintf(buf, "%X", ret);
+            sprintf(buf, "%lX", ret);
             video_write_text(4, 1, buf);
         }
     }
@@ -64,8 +64,6 @@ int main() {
 
 
 void c_interrupt_handler(void){
-    uint32_t ret = 0;
-
     switch (c_mcause) {
     case 0x80000007: // Timer Interrupt
         time_on_timeout();
@@ -112,13 +110,13 @@ void c_interrupt_handler(void){
 }
 
 
-uint32_t c_syscall_handler(void) {
+void c_syscall_handler(void) {
     uint32_t a0 = current_ctx.a0;
     uint32_t a1 = current_ctx.a1;
     uint32_t a2 = current_ctx.a2;
     uint32_t a3 = current_ctx.a3;
-    uint32_t a4 = current_ctx.a4;
-    uint32_t a5 = current_ctx.a5;
+    //uint32_t a4 = current_ctx.a4;
+    //uint32_t a5 = current_ctx.a5;
     uint32_t ret = 0;
     char buf[256];
 
@@ -213,7 +211,7 @@ uint32_t c_syscall_handler(void) {
         break;
 
     default:
-        sprintf(buf, "Got unknown syscall %u", a0);
+        sprintf(buf, "Got unknown syscall %lu", a0);
         fault(buf);
     }
 

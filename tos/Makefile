@@ -26,7 +26,7 @@ endif
 
 LDFILE   = riscv32-console.ld
 INCLUDE  += -I $(INC_DIR)
-CFLAGS   += -ffreestanding  -nostartfiles -nostdlib -nodefaultlibs
+CFLAGS   += -Wall -ffreestanding  -nostartfiles -nostdlib -nodefaultlibs
 LDFLAGS  += -Wl,--gc-sections -Wl,-T,$(LDFILE)
 
 TARGET_NAME = riscv-tos.a
