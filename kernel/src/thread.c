@@ -50,6 +50,10 @@ struct thread* interrupt_thread;
 struct thread* running_thread;
 struct thread_queue ready_threads;
 
+int preemption_enable;
+
+
+
 
 int thread_queue_push(struct thread_queue* queue, struct thread* thread) {
     thread->next = NULL;
@@ -111,6 +115,8 @@ void thread_init(void) {
     threads[0].join_queue.tail = NULL;
 
     running_thread = &threads[0];
+
+    preemption_enable = 1;
 }
 
 
@@ -125,6 +131,12 @@ void thread_exit_int(void) {
         interrupt_thread->ctx = current_ctx;
         current_ctx = running_thread->ctx;
     }
+}
+
+
+void thread_on_timeout(void) {
+    if (preemption_enable)
+        thread_yield();
 }
 
 
@@ -187,7 +199,7 @@ int thread_yield(void) {
 int thread_join(thread_t t, int* exit_code) {
     if (running_thread->tid != 0)
         fault("join by non 0");
-    
+
     if (t < 0 || t > MAX_THREADS) {
         return -1;
     } else if (!(threads[t].flags & T_USED)) {
@@ -205,5 +217,6 @@ int thread_join(thread_t t, int* exit_code) {
 
 
 int thread_set_preemption(int enable) {
+    preemption_enable = enable;
     return 0;
 }

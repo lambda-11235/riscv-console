@@ -17,7 +17,6 @@ int thread_b(void* data) {
         cnt = (cnt + 1)%256;
         sprintf(buf, "Thread B: %d", cnt);
         video_write_text(0, 1, buf);
-        thread_yield();
     }
 
     return 0;
@@ -25,13 +24,14 @@ int thread_b(void* data) {
 
 
 int main() {
-    uint64_t tm = 100000;
+    uint64_t tm = 1000000;
     char buf[256];
     int cnt = 0;
 
     video_set_mode(TEXT_MODE);
     video_clear_text();
-    //set_timeout_us(&tm);
+    set_timeout_us(&tm);
+    //thread_set_preemption(0);
     
     if (thread_create(thread_b, NULL) == -1) {
         fault("Could not create thread");
@@ -41,9 +41,6 @@ int main() {
         cnt = (cnt + 1)%256;
         sprintf(buf, "Thread A: %d", cnt);
         video_write_text(0, 0, buf);
-        thread_yield();
-
-        sleep_us(&tm);
     }
 
     return 0;

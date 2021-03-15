@@ -16,7 +16,6 @@
 _interrupt_handler:
   # Change contexts
   swap_ctx current_ctx, interrupt_ctx
-
   call thread_enter_int
 
   csrr t0, mcause
@@ -30,8 +29,7 @@ _interrupt_handler:
 .syscall:
   call c_syscall_handler
 
-  call thread_exit_int
-
 .end:
+  call thread_exit_int
   swap_ctx interrupt_ctx, current_ctx
   mret

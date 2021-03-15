@@ -4,7 +4,8 @@
 #include "registers.h"
 
 #define USECS_PER_TICK 1000
-#define MIN_TIMEOUT_TICKS 10
+#define MIN_TIMEOUT_TICKS 1
+#define DEFAULT_TIMEOUT_TICKS 10
 
 uint64_t start_time;
 uint64_t timeout_ticks;
@@ -18,7 +19,7 @@ inline void get_time(uint64_t* t) {
 
 void time_init(void) {
     get_time(&start_time);
-    timeout_ticks = MIN_TIMEOUT_TICKS;
+    timeout_ticks = DEFAULT_TIMEOUT_TICKS;
     no_timeout = 0;
 
     time_on_timeout();

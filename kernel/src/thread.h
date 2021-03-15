@@ -23,5 +23,7 @@ void thread_enter_int(void);
  */
 void thread_exit_int(void);
 
+void thread_on_timeout(void);
+
 
 #endif /* _THREAD_H_ */
