@@ -43,6 +43,7 @@ TARGET_OBJS =   $(OBJ_DIR)/main.o               \
                 $(OBJ_DIR)/run_cartridge.o      \
                 $(OBJ_DIR)/signal.o             \
                 $(OBJ_DIR)/thread.o             \
+                $(OBJ_DIR)/thread_idle.o        \
                 $(OBJ_DIR)/thread_wrapper.o     \
                 $(OBJ_DIR)/time.o               \
                 $(OBJ_DIR)/video.o

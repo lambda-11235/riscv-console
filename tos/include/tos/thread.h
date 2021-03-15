@@ -1,4 +1,7 @@
 
+#include <stdint.h>
+
+
 #ifndef _TOS_THREAD_H_
 #define _TOS_THREAD_H_
 
@@ -48,13 +51,23 @@ void thread_exit(int exit_code);
 
 
 /**
- * @brief Changes whether threads are preempted.
+ * @brief Changes whether threads are preempted by timer interrupts.
  *
  * @param enable If true enable preemption, otherwise disable it.
  *
  * @return On success returns 0, and on failure -1.
  */
 int thread_set_preemption(int enable);
+
+
+/**
+ * @brief Suspends current thread execution for a specified amount of time.
+ *
+ * @param period The period to suspend execution for.
+ *
+ * @return On success returns 0, and on failure returns -1.
+ */
+int thread_sleep_us(uint64_t* period);
 
 
 /**

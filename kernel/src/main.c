@@ -141,9 +141,6 @@ void c_syscall_handler(void) {
         ret = time_us((uint64_t*) a1);
         break;
     case 6:
-        ret = sleep_us((uint64_t*) a1);
-        break;
-    case 7:
         ret = set_timeout_us((uint64_t*) a1);
         break;
 
@@ -201,6 +198,9 @@ void c_syscall_handler(void) {
         break;
     case 388:
         ret = thread_set_preemption(a1);
+        break;
+    case 389:
+        ret = thread_sleep_us((uint64_t*) a1);
         break;
 
     // Signals

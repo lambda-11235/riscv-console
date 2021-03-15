@@ -1,8 +1,5 @@
 .section .text,  "ax"
 
-.extern sprintf
-.extern video_write_text
-
 .global thread_wrapper
 thread_wrapper:
   # Call thread main function

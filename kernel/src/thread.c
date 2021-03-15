@@ -2,7 +2,7 @@
 #include <stddef.h>
 
 #include "alloc.h"
-#include "video.h"
+#include "time.h"
 
 #include "thread.h"
 
@@ -30,6 +30,9 @@ struct thread {
     void* stack_base;
     struct context ctx;
 
+    // Wakeup time for sleeping thread
+    uint64_t wakeup_time;
+
     // Stores address to place exit code when child joins.
     int* child_exit_code;
 
@@ -42,6 +45,10 @@ extern struct context current_ctx;
 
 struct thread threads[MAX_THREADS];
 
+// idle_thread loop on yield syscall forever.
+// Since it doesn't exit or sleep, it's always ready.
+struct thread idle_thread;
+
 // Thread that was preempted by an interrupt.
 struct thread* interrupt_thread;
 
@@ -49,6 +56,7 @@ struct thread* interrupt_thread;
 // Joining threads get put in a specific threads queue.
 struct thread* running_thread;
 struct thread_queue ready_threads;
+struct thread_queue sleeping_threads;
 
 int preemption_enable;
 
@@ -100,6 +108,7 @@ int thread_queue_empty(struct thread_queue* queue) {
 
 
 
+void thread_idle(void);
 void thread_wrapper(int (*func)(void*), void* data);
 
 
@@ -109,12 +118,22 @@ void thread_init(void) {
         threads[i].tid = i;
     }
 
+    // Init thread is always 0.
     threads[0].stack_base = NULL;
     threads[0].flags = T_USED;
     threads[0].join_queue.head = NULL;
     threads[0].join_queue.tail = NULL;
 
     running_thread = &threads[0];
+
+    // Setup idle thread and make it ready.
+    idle_thread.stack_base = NULL;
+    idle_thread.flags = T_USED;
+    idle_thread.join_queue.head = NULL;
+    idle_thread.join_queue.tail = NULL;
+    idle_thread.ctx.mepc = (uint32_t) thread_idle;
+
+    thread_queue_push(&ready_threads, &idle_thread);
 
     preemption_enable = 1;
 }
@@ -135,6 +154,25 @@ void thread_exit_int(void) {
 
 
 void thread_on_timeout(void) {
+    uint64_t time;
+    time_us(&time);
+
+    // Wakeup sleeping threads
+    struct thread_queue tmp_queue = {0};
+    struct thread* node = thread_queue_pop(&sleeping_threads);
+    while (node != NULL) {
+        if (node->wakeup_time < time)
+            thread_queue_push(&ready_threads, node);
+        else
+            thread_queue_push(&tmp_queue, node);
+
+        node = thread_queue_pop(&sleeping_threads);
+    }
+
+    sleeping_threads.head = tmp_queue.head;
+    sleeping_threads.tail = tmp_queue.tail;
+
+    // Preempt threads
     if (preemption_enable)
         thread_yield();
 }
@@ -218,5 +256,18 @@ int thread_join(thread_t t, int* exit_code) {
 
 int thread_set_preemption(int enable) {
     preemption_enable = enable;
+    return 0;
+}
+
+
+int thread_sleep_us(uint64_t* period) {
+    uint64_t wt;
+    time_us(&wt);
+    wt += *period;
+
+    running_thread->wakeup_time = wt;
+    thread_queue_push(&sleeping_threads, running_thread);
+    running_thread = thread_queue_pop(&ready_threads);
+
     return 0;
 }

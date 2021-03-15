@@ -10,6 +10,7 @@
 #include <tos/video.h>
 
 int thread_b(void* data) {
+    uint64_t tm = 1000000;
     char buf[256];
     int cnt = 0;
 
@@ -17,6 +18,7 @@ int thread_b(void* data) {
         cnt = (cnt + 1)%256;
         sprintf(buf, "Thread B: %d", cnt);
         video_write_text(0, 1, buf);
+        thread_sleep_us(&tm);
     }
 
     return 0;
@@ -30,7 +32,6 @@ int main() {
 
     video_set_mode(TEXT_MODE);
     video_clear_text();
-    set_timeout_us(&tm);
     //thread_set_preemption(0);
     
     if (thread_create(thread_b, NULL) == -1) {
@@ -41,6 +42,7 @@ int main() {
         cnt = (cnt + 1)%256;
         sprintf(buf, "Thread A: %d", cnt);
         video_write_text(0, 0, buf);
+        thread_sleep_us(&tm);
     }
 
     return 0;

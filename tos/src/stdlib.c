@@ -46,15 +46,8 @@ int time_us(uint64_t* t) {
 }
 
 
-int sleep_us(uint64_t* period) {
-    uint32_t args[5];
-    args[0] = (uint32_t) period;
-    return syscall(6, args);
-}
-
-
 int set_timeout_us(uint64_t* period) {
     uint32_t args[5];
     args[0] = (uint32_t) period;
-    return syscall(7, args);
+    return syscall(6, args);
 }

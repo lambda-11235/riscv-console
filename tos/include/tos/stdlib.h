@@ -65,16 +65,6 @@ int time_us(uint64_t* t);
 
 
 /**
- * @brief Suspends program execution for a specified amount of time.
- *
- * @param period The period to suspend execution for.
- *
- * @return On success returns 0, and on failure returns -1.
- */
-int sleep_us(uint64_t* period);
-
-
-/**
  * @brief Sets the timeout in microseconds between timer interrupts.
  *
  * Note that the underlying architecture may not support microsecond
@@ -87,5 +77,6 @@ int sleep_us(uint64_t* period);
  * @return On success returns 0, and on failure returns -1.
  */
 int set_timeout_us(uint64_t* period);
+
 
 #endif /* _TOS_STDLIB_H_ */

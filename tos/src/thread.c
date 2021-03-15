@@ -38,3 +38,10 @@ int thread_set_preemption(int enable) {
     args[0] = (uint32_t) enable;
     return syscall(388, args);
 }
+
+
+int thread_sleep_us(uint64_t* period) {
+    uint32_t args[5];
+    args[0] = (uint32_t) period;
+    return syscall(389, args);
+}

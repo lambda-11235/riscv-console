@@ -50,20 +50,6 @@ int time_us(uint64_t* t) {
 }
 
 
-// TODO: Merge with threading
-int sleep_us(uint64_t* period) {
-    uint64_t t, end;
-    get_time(&t);
-    end = t + (*period)/USECS_PER_TICK;
-
-    while (t < end) {
-        get_time(&t);
-    }
-
-    return 0;
-}
-
-
 int set_timeout_us(uint64_t* period) {
     if (*period == 0) {
         no_timeout = 1;
