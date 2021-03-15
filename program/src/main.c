@@ -14,7 +14,7 @@ int main() {
     struct input_ctlr ctlr = {0};
     char buf[256];
     cmd_pressed = 0;
-        
+
     sprintf(buf, "%x", 26);
     video_set_mode(TEXT_MODE);
     video_clear_text();

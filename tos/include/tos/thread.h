@@ -39,6 +39,15 @@ int thread_join(thread_t t, int* exit_code);
 
 
 /**
+ * @brief Causes thread to quit running and yield.
+ * Note that this does not cleanup allocations made by the thread.
+ *
+ * @param exit_code The exit code.
+ */
+void thread_exit(int exit_code);
+
+
+/**
  * @brief Changes whether threads are preempted.
  *
  * @param enable If true enable preemption, otherwise disable it.
@@ -54,7 +63,7 @@ int thread_set_preemption(int enable);
  * @return On success returns a pointer to the mutex, and on failure
  * NULL.
  */
-mutex_t* mutex_new(void);
+struct mutex_t* mutex_new(void);
 
 
 /**
@@ -64,7 +73,7 @@ mutex_t* mutex_new(void);
  *
  * @return On success returns 0, and on failure -1.
  */
-int mutex_lock(mutex_t* m);
+int mutex_lock(struct mutex_t* m);
 
 
 /**
@@ -74,7 +83,7 @@ int mutex_lock(mutex_t* m);
  *
  * @return On success returns 0, and on failure -1.
  */
-int mutex_unlock(mutex_t* m);
+int mutex_unlock(struct mutex_t* m);
 
 
 /**
@@ -84,7 +93,7 @@ int mutex_unlock(mutex_t* m);
  *
  * @return On success returns 0, and on failure -1.
  */
-int mutex_free(mutex_t* m);
+int mutex_free(struct mutex_t* m);
 
 
 /**
@@ -93,7 +102,7 @@ int mutex_free(mutex_t* m);
  * @return On success returns a pointer to the variable, and on
  * failure NULL.
  */
-condvar_t* condvar_new(void);
+struct condvar_t* condvar_new(void);
 
 
 /**
@@ -104,7 +113,7 @@ condvar_t* condvar_new(void);
  *
  * @return On success returns 0, and on failure -1.
  */
-int condvar_wait(condvar_t* cv, mutex_t* m);
+int condvar_wait(struct condvar_t* cv, struct mutex_t* m);
 
 
 /**
@@ -114,7 +123,7 @@ int condvar_wait(condvar_t* cv, mutex_t* m);
  *
  * @return On success returns 0, and on failure -1.
  */
-int condvar_signal(condvar_t* cv);
+int condvar_signal(struct condvar_t* cv);
 
 
 /**
@@ -124,7 +133,7 @@ int condvar_signal(condvar_t* cv);
  *
  * @return On success returns 0, and on failure -1.
  */
-int condvar_broadcast(condvar_t* cv);
+int condvar_broadcast(struct condvar_t* cv);
 
 
 /**
@@ -134,7 +143,7 @@ int condvar_broadcast(condvar_t* cv);
  *
  * @return On success returns 0, and on failure -1.
  */
-int condvar_free(condvar_t* cv);
+int condvar_free(struct condvar_t* cv);
 
 
 #endif /* _TOS_THREAD_H_ */

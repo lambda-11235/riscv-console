@@ -9,6 +9,7 @@
 #include "registers.h"
 #include "signal.h"
 #include "time.h"
+#include "thread.h"
 #include "video.h"
 
 
@@ -37,6 +38,7 @@ int main() {
 
     mem_init();
     time_init();
+    thread_init();
 
     video_write_text(0, 0, "Please insert cartridge");
 
@@ -119,6 +121,9 @@ uint32_t c_syscall_handler(void) {
     uint32_t a5 = current_ctx.a5;
     uint32_t ret = 0;
     int should_yield = 0;
+    char buf[256];
+
+    thread_enter_int();
 
     switch (a0) {
     case 0:
@@ -186,6 +191,22 @@ uint32_t c_syscall_handler(void) {
         ret = video_write_ss_control(a1, (struct ss_control*) a2);
         break;
 
+    case 384:
+        ret = thread_create((int (*)(void*)) a1, (void*) a2);
+        break;
+    case 385:
+        ret = thread_yield();
+        break;
+    case 386:
+        ret = thread_join(a1, (int*) a2);
+        break;
+    case 387:
+        thread_exit(a1);
+        break;
+    case 388:
+        ret = thread_set_preemption(a1);
+        break;
+
     // Signals
     case 512:
         ret = signal_register(a1, (void (*)(int)) a2);
@@ -193,12 +214,14 @@ uint32_t c_syscall_handler(void) {
     case 513:
         ret = signal_raise(a1);
         break;
+
+    default:
+        sprintf(buf, "Got unknown syscall %u", a0);
+        fault(buf);
     }
 
     current_ctx.a0 = ret;
     current_ctx.mepc += 4;
 
-    if (should_yield) {
-        // TODO: Switch threads, changing current_ctx
-    }
+    thread_exit_int();
 }
