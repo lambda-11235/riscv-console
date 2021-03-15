@@ -35,6 +35,7 @@ TARGET_OBJS =   $(OBJ_DIR)/syscall.o \
                 $(OBJ_DIR)/input.o   \
                 $(OBJ_DIR)/signal.o  \
                 $(OBJ_DIR)/stdlib.o  \
+                $(OBJ_DIR)/thread.o  \
                 $(OBJ_DIR)/video.o
 
 all: directories $(BIN_DIR)/$(TARGET_NAME)

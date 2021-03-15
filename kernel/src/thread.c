@@ -24,6 +24,7 @@ struct thread_queue {
 
 struct thread {
     int flags;
+    int tid;
     struct thread* next;
 
     void* stack_base;
@@ -58,6 +59,7 @@ int thread_queue_push(struct thread_queue* queue, struct thread* thread) {
         queue->tail = thread;
     } else {
         queue->tail->next = thread;
+        queue->tail = thread;
     }
 }
 
@@ -98,9 +100,14 @@ void thread_wrapper(int (*func)(void*), void* data);
 int thread_init(void) {
     for (size_t i = 0; i < MAX_THREADS; i++) {
         threads[i].flags = 0;
+        threads[i].tid = i;
     }
 
+    threads[0].stack_base = NULL;
     threads[0].flags = T_USED;
+    threads[0].join_queue.head = NULL;
+    threads[0].join_queue.tail = NULL;
+
     running_thread = &threads[0];
 }
 
@@ -120,6 +127,7 @@ void thread_exit_int(void) {
 
 
 void thread_exit(int exit_code) {
+    fault("exit");
     struct thread* next = thread_queue_pop(&running_thread->join_queue);
 
     while (next != NULL) {
@@ -136,6 +144,7 @@ void thread_exit(int exit_code) {
 
 
 thread_t thread_create(int (*func)(void*), void* data) {
+    struct thread* new_thread;
     thread_t tid = 0;
 
     while (tid < MAX_THREADS && threads[tid].flags & T_USED)
@@ -144,18 +153,20 @@ thread_t thread_create(int (*func)(void*), void* data) {
     if (tid >= MAX_THREADS)
         return -1;
 
-    threads[tid].stack_base = mem_alloc(STACK_SIZE);
-    threads[tid].flags = T_USED;
-    threads[tid].join_queue.head = NULL;
-    threads[tid].join_queue.tail = NULL;
+    new_thread = &threads[tid];
 
-    threads[tid].ctx.sp = (uint32_t) threads[tid].stack_base;
-    threads[tid].ctx.gp = current_ctx.gp;  // Inherit gp
-    threads[tid].ctx.mepc = (uint32_t) thread_wrapper;
-    threads[tid].ctx.a0 = (uint32_t) func;
-    threads[tid].ctx.a1 = (uint32_t) data;
+    new_thread->stack_base = mem_alloc(STACK_SIZE);
+    new_thread->flags = T_USED;
+    new_thread->join_queue.head = NULL;
+    new_thread->join_queue.tail = NULL;
 
-    thread_queue_push(&ready_threads, &threads[tid]);
+    new_thread->ctx.sp = (uint32_t) (new_thread->stack_base + STACK_SIZE);
+    new_thread->ctx.gp = current_ctx.gp;  // Inherit gp
+    new_thread->ctx.mepc = (uint32_t) thread_wrapper;
+    new_thread->ctx.a0 = (uint32_t) func;
+    new_thread->ctx.a1 = (uint32_t) data;
+
+    thread_queue_push(&ready_threads, new_thread);
 
     return tid;
 }
@@ -172,6 +183,9 @@ int thread_yield(void) {
 
 
 int thread_join(thread_t t, int* exit_code) {
+    if (running_thread->tid != 0)
+        fault("join by non 0");
+    
     if (t < 0 || t > MAX_THREADS) {
         return -1;
     } else if (!(threads[t].flags & T_USED)) {

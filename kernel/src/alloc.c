@@ -15,8 +15,12 @@ struct block_header {
     uint32_t flags;
 };
 
-#define HEAP_START ((struct block_header*) 0x70800000)
-#define HEAP_END   ((struct block_header*) 0x71000000)
+
+extern uint8_t __heap_start[];
+extern uint8_t __heap_end[];
+
+#define HEAP_START ((struct block_header*) __heap_start)
+#define HEAP_END   ((struct block_header*) __heap_end)
 
 struct block_header* head;
 

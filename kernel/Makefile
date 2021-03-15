@@ -45,7 +45,6 @@ TARGET_OBJS =   $(OBJ_DIR)/main.o               \
                 $(OBJ_DIR)/thread.o             \
                 $(OBJ_DIR)/thread_wrapper.o     \
                 $(OBJ_DIR)/time.o               \
-                $(OBJ_DIR)/util.o               \
                 $(OBJ_DIR)/video.o
 
 all: directories $(BIN_DIR)/$(TARGET_NAME)

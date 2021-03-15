@@ -8,7 +8,7 @@ volatile uint64_t start_time;
 volatile uint64_t timeout_us;
 
 
-uint64_t get_time(void) {
+inline uint64_t get_time(void) {
     return (((uint64_t)MTIME_HIGH)<<32) | MTIME_LOW;
 }
 
@@ -21,8 +21,8 @@ void time_init(void) {
 
 void time_on_timeout(void) {
     if (timeout_us > 0) {
-        uint64_t new_comp = (((uint64_t)MTIME_HIGH)<<32) | MTIME_LOW;
-        new_comp += timeout_us;
+        uint64_t new_comp = get_time();
+        new_comp += timeout_us/USECS_PER_TICK;
         MTIMECMP_HIGH = new_comp>>32;
         MTIMECMP_LOW = new_comp;
     } else {
@@ -42,7 +42,7 @@ int time_us(uint64_t* t) {
 int sleep_us(uint64_t* period) {
     uint64_t start = get_time();
 
-    while (get_time() < start + *period) {}
+    while (get_time() < start + (*period)/USECS_PER_TICK) {}
 
     return 0;
 }

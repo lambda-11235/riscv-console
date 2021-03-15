@@ -32,7 +32,10 @@ SECTIONS
         in which case a buffer overflow occurs
     */
     PROVIDE( __init_stack_top = ORIGIN(RAM) + LENGTH(RAM));
-    PROVIDE( __interrupt_stack_top = ORIGIN(RAM) + LENGTH(RAM) - 0x400);
+    PROVIDE( __interrupt_stack_top = ORIGIN(RAM) + LENGTH(RAM) - 0x1000);
+    PROVIDE( __interrupt_stack_bot = ORIGIN(RAM) + LENGTH(RAM) - 0x2000);
+    PROVIDE( __heap_start = 0x70800000);
+    PROVIDE( __heap_end = __interrupt_stack_bot);
 
     /* constants  and other code stored in FLASH */
     .text :

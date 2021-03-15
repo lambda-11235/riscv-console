@@ -120,10 +120,7 @@ uint32_t c_syscall_handler(void) {
     uint32_t a4 = current_ctx.a4;
     uint32_t a5 = current_ctx.a5;
     uint32_t ret = 0;
-    int should_yield = 0;
     char buf[256];
-
-    thread_enter_int();
 
     switch (a0) {
     case 0:
@@ -222,6 +219,4 @@ uint32_t c_syscall_handler(void) {
 
     current_ctx.a0 = ret;
     current_ctx.mepc += 4;
-
-    thread_exit_int();
 }
