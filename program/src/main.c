@@ -33,17 +33,26 @@ int main() {
 
     video_set_mode(TEXT_MODE);
     video_clear_text();
+    set_timeout_us(&tm);
     
     if (thread_create(thread_b, NULL) == -1) {
         fault("Could not create thread");
     }
 
     while (1) {
+        uint64_t start, time;
+
         cnt = (cnt + 1)%256;
         sprintf(buf, "Thread A: %d", cnt);
         video_write_text(0, 0, buf);
         thread_yield();
-        //sleep_us(&tm);
+
+        time_us(&start);
+        time = start;
+
+        while (time < start + tm) {
+            time_us(&time);
+        }
     }
 
     return 0;

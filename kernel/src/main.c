@@ -69,7 +69,7 @@ void c_interrupt_handler(void){
     switch (c_mcause) {
     case 0x80000007: // Timer Interrupt
         time_on_timeout();
-        //signal_raise(1);
+        signal_raise(1);
         break;
     case 0xB: // ECALL
         fault("Syscall handled improperly as asynchronous interrupt");

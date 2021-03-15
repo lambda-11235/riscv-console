@@ -49,6 +49,6 @@ void init(void){
     csr_write_mie(0x888);       // Enable all interrupt soruces
     enable_interrupts();    // Global interrupt enable
 
-    MTIMECMP_LOW = 1;
-    MTIMECMP_HIGH = 0;
+    MTIMECMP_HIGH = 0xffffffff;
+    MTIMECMP_LOW = 0xffffffff;
 }
