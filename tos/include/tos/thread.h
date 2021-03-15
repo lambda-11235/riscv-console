@@ -63,6 +63,8 @@ int thread_set_preemption(int enable);
 /**
  * @brief Suspends current thread execution for a specified amount of time.
  *
+ * Note that precision is limited to the timer interrupt interval.
+ *
  * @param period The period to suspend execution for.
  *
  * @return On success returns 0, and on failure returns -1.

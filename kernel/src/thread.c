@@ -7,6 +7,9 @@
 #include "thread.h"
 
 
+extern struct context current_ctx;
+
+
 #define MAX_THREADS 256
 #define STACK_SIZE 4096
 
@@ -39,9 +42,6 @@ struct thread {
     // Threads waiting to join.
     struct thread_queue join_queue;
 };
-
-
-extern struct context current_ctx;
 
 struct thread threads[MAX_THREADS];
 
@@ -179,7 +179,6 @@ void thread_on_timeout(void) {
 
 
 void thread_exit(int exit_code) {
-    fault("exit");
     struct thread* next = thread_queue_pop(&running_thread->join_queue);
 
     while (next != NULL) {
@@ -195,7 +194,8 @@ void thread_exit(int exit_code) {
 }
 
 
-thread_t thread_create(int (*func)(void*), void* data) {
+thread_t thread_create_from_ctx(int (*func)(void*), void* data,
+                                struct context ctx) {
     struct thread* new_thread;
     thread_t tid = 0;
 
@@ -212,8 +212,10 @@ thread_t thread_create(int (*func)(void*), void* data) {
     new_thread->join_queue.head = NULL;
     new_thread->join_queue.tail = NULL;
 
+    // Inherit whatever context that spawned thread, and modify what
+    // needs to change.
+    new_thread->ctx = ctx;
     new_thread->ctx.sp = (uint32_t) (new_thread->stack_base + STACK_SIZE);
-    new_thread->ctx.gp = current_ctx.gp;  // Inherit gp
     new_thread->ctx.mepc = (uint32_t) thread_wrapper;
     new_thread->ctx.a0 = (uint32_t) func;
     new_thread->ctx.a1 = (uint32_t) data;
@@ -221,6 +223,10 @@ thread_t thread_create(int (*func)(void*), void* data) {
     thread_queue_push(&ready_threads, new_thread);
 
     return tid;
+}
+
+thread_t thread_create(int (*func)(void*), void* data) {
+    return thread_create_from_ctx(func, data, current_ctx);
 }
 
 

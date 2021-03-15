@@ -2,36 +2,45 @@
 #include <stddef.h>
 
 #include "registers.h"
+#include "thread.h"
 
 #include "signal.h"
 
+
+extern struct context current_ctx;
+
+
 #define MAX_SIGNALS 256
 
-typedef void (*handler_t)(int);
+struct handler_entry {
+    struct context ctx;
+    void (*func)(int);
+};
 
-handler_t handlers[MAX_SIGNALS];
+struct handler_entry handlers[MAX_SIGNALS];
 
 
 void signal_init(void) {
     for (size_t i = 0; i < MAX_SIGNALS; i++) {
-        handlers[i] = NULL;
+        handlers[i].func = NULL;
     }
 }
 
 
 int signal_register(int sig, void (*handler)(int)) {
-    handlers[sig] = handler;
+    handlers[sig].ctx = current_ctx;
+    handlers[sig].func = handler;
     return 0;
 }
 
 
 int signal_raise(int sig) {
-    if (handlers[sig] == NULL) {
+    if (handlers[sig].func == NULL) {
         // Ignore
     } else {
-        // TODO: Old code breaks context switching.
-        //       Should spawn thread to handle signal instead.
-        //       Set parrent thread to waiting.
+        thread_create_from_ctx((int (*)(void*)) handlers[sig].func,
+                               (void*) sig,
+                               handlers[sig].ctx);
     }
 
     return 0;
