@@ -10,53 +10,88 @@
 #include <tos/video.h>
 
 
-char bufA[256];
-char bufB[256];
+#define STR_(X) #X
+#define STR(X) STR_(X)
+#define F(x) {if (x == -1) fault(__FILE__ " " STR(__LINE__) ": " #x " == -1");}
 
-struct mutex_t* lock;
-volatile int shared;
+volatile int cntA;
+volatile int cntB;
+volatile int cntC;
+
+
+struct mutex_t* lockA;
+struct mutex_t* lockB;
+struct condvar_t* cv;
+
+
+#define US_PER_MS  1000
+#define US_PER_SEC 1000000
 
 
 void video_handler(int sig) {
     char buf[256];
     
-    mutex_lock(lock);
+    F(mutex_lock(lockA));
 
-    video_write_text(0, 0, bufA);
-    video_write_text(0, 1, bufB);
+    sprintf(buf, "Thread A: %d", cntA);
+    F(video_write_text(0, 0, buf));
 
-    sprintf(buf, "Shared: %d", shared);
-    video_write_text(0, 2, buf);
+    sprintf(buf, "Thread C: %d", cntC);
+    F(video_write_text(0, 2, buf));
+    
+    F(mutex_unlock(lockA));
 
-    mutex_unlock(lock);
+    
+    F(mutex_lock(lockB));
+
+    sprintf(buf, "Thread B: %d", cntB);
+    F(video_write_text(0, 1, buf));
+
+    F(mutex_unlock(lockB));
 }
 
 
 int thread_b(void* data) {
-    uint64_t tm = 1000000;
-    int cnt = 0;
+    uint64_t tm = 700*US_PER_MS;
 
     while (1) {
-        mutex_lock(lock);
+        F(mutex_lock(lockB));
+        cntB = (cntB + 1)%256;
+        F(mutex_unlock(lockB));
         
-        cnt = (cnt + 1)%256;
-        sprintf(bufB, "Thread B: %d", cnt);
-        shared++;
-
-        mutex_unlock(lock);
-        
-        thread_sleep_us(&tm);
+        F(thread_sleep_us(&tm));
     }
 
     return 0;
 }
 
 
-int main() {
-    uint64_t tm = 1000000;
-    int cnt = 0;
+int thread_c(void* data) {
+    F(mutex_lock(lockA));
 
-    lock = mutex_new();
+    while (1) {
+        while (cntA < cntC)
+            F(condvar_wait(cv, lockA));
+
+        cntC = 2*cntA;
+    }
+        
+    F(mutex_unlock(lockA));
+
+    return 0;
+}
+
+
+int main() {
+    uint64_t tm = 1100*US_PER_MS;
+
+    cntA = 0;
+    cntB = 0;
+    cntC = 0;
+
+    lockA = mutex_new();
+    lockB = mutex_new();
+    cv = condvar_new();
     
     video_set_mode(TEXT_MODE);
     video_clear_text();
@@ -64,20 +99,29 @@ int main() {
     //thread_set_preemption(0);
 
     if (thread_create(thread_b, NULL) == -1) {
-        fault("Could not create thread");
+        fault("Could not create thread B");
+    }
+
+    if (thread_create(thread_c, NULL) == -1) {
+        fault("Could not create thread C");
     }
 
     while (1) {
-        mutex_lock(lock);
+        F(mutex_lock(lockA));
 
-        cnt = (cnt + 1)%256;
-        sprintf(bufA, "Thread A: %d", cnt);
-        shared++;
+        cntA = (cntA + 1)%256;
 
-        mutex_unlock(lock);
+        if (cntA >= cntC)
+            F(condvar_signal(cv));
+        
+        F(mutex_unlock(lockA));
 
-        thread_sleep_us(&tm);
+        F(thread_sleep_us(&tm));
     }
+
+    F(mutex_free(lockA));
+    F(mutex_free(lockB));
+    F(condvar_free(cv));
 
     return 0;
 }

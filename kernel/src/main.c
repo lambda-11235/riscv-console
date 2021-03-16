@@ -216,6 +216,23 @@ void c_syscall_handler(void) {
         ret = mutex_free((struct mutex_t*) a1);
         break;
 
+    case 424:
+        ret = (uint32_t) condvar_new();
+        break;
+    case 425:
+        ret = condvar_wait((struct condvar_t*) a1,
+                           (struct mutex_t*) a2);
+        break;
+    case 426:
+        ret = condvar_signal((struct condvar_t*) a1);
+        break;
+    case 427:
+        ret = condvar_broadcast((struct condvar_t*) a1);
+        break;
+    case 428:
+        ret = condvar_free((struct condvar_t*) a1);
+        break;
+
     // Signals
     case 512:
         ret = signal_register(a1, (void (*)(int)) a2);

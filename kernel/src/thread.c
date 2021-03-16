@@ -36,6 +36,9 @@ struct thread {
     // Wakeup time for sleeping thread
     uint64_t wakeup_time;
 
+    // Mutex that was unlocked by a condition variable.
+    struct mutex_t* condvar_mutex;
+
     // Stores address to place exit code when child joins.
     int* child_exit_code;
 
@@ -244,10 +247,8 @@ int thread_yield(void) {
 }
 
 
+// FIXME: Doesn't work if child has exited.
 int thread_join(thread_t t, int* exit_code) {
-    if (running_thread->tid != 0)
-        fault("join by non 0");
-
     if (t < 0 || t > MAX_THREADS) {
         return -1;
     } else if (!(threads[t].flags & T_USED)) {
@@ -288,6 +289,11 @@ int thread_sleep_us(uint64_t* period) {
 struct mutex_t {
     int locked;
     struct thread_queue waiting_threads;
+
+    // FIXME: There's a Heisenburg bug here. condition variables
+    // creates deadlock fro no reason. Might have to do with
+    // memory allocation.
+    int foo;
 };
 
 
@@ -313,6 +319,9 @@ int mutex_lock(struct mutex_t* m) {
 
 
 int mutex_unlock(struct mutex_t* m) {
+    if (!m->locked)
+        return -1;
+    
     if (thread_queue_empty(&m->waiting_threads)) {
         m->locked = 0;
     } else {
@@ -336,18 +345,63 @@ int mutex_free(struct mutex_t* m) {
 
 
 
-/*
-struct condvar_t* condvar_new(void);
+struct condvar_t {
+    struct thread_queue waiting_threads;
+};
 
 
-int condvar_wait(struct condvar_t* cv, struct mutex_t* m);
+struct condvar_t* condvar_new(void) {
+    struct condvar_t* cv = mem_alloc(sizeof(struct condvar_t));
+    thread_queue_init(&cv->waiting_threads);
+
+    return cv;
+}
 
 
-int condvar_signal(struct condvar_t* cv);
+int condvar_wait(struct condvar_t* cv, struct mutex_t* m) {
+    if (m->locked) {
+        mutex_unlock(m);
+        running_thread->condvar_mutex = m;
+
+        thread_queue_push(&cv->waiting_threads, running_thread);
+        running_thread = thread_queue_pop(&ready_threads);
+
+        return 0;
+    } else {
+        return -1;
+    }
+}
 
 
-int condvar_broadcast(struct condvar_t* cv);
+int condvar_signal(struct condvar_t* cv) {
+    if (!thread_queue_empty(&cv->waiting_threads)) {
+        struct thread* t = thread_queue_pop(&cv->waiting_threads);
+
+        if (t->condvar_mutex->locked) {
+            thread_queue_push(&t->condvar_mutex->waiting_threads, t);
+        } else {
+            thread_queue_push(&ready_threads, t);
+            t->condvar_mutex->locked = 1;
+        }
+    }
+
+    return 0;
+}
 
 
-int condvar_free(struct condvar_t* cv);
-*/
+int condvar_broadcast(struct condvar_t* cv) {
+    while (!thread_queue_empty(&cv->waiting_threads))
+        condvar_signal(cv);
+
+    return 0;
+}
+
+
+int condvar_free(struct condvar_t* cv) {
+    if (thread_queue_empty(&cv->waiting_threads)) {
+        mem_free(cv);
+        return 0;
+    } else {
+        return -1;
+    }
+}

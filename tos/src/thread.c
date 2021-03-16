@@ -73,3 +73,40 @@ int mutex_free(struct mutex_t* m) {
     args[0] = (uint32_t) m;
     return syscall(407, args);
 }
+
+
+
+
+struct condvar_t* condvar_new(void) {
+    uint32_t args[5];
+    return (struct condvar_t*) syscall(424, args);
+}
+
+
+int condvar_wait(struct condvar_t* cv, struct mutex_t* m) {
+    uint32_t args[5];
+    args[0] = (uint32_t) cv;
+    args[1] = (uint32_t) m;
+    return syscall(425, args);
+}
+
+
+int condvar_signal(struct condvar_t* cv) {
+    uint32_t args[5];
+    args[0] = (uint32_t) cv;
+    return syscall(426, args);
+}
+
+
+int condvar_broadcast(struct condvar_t* cv) {
+    uint32_t args[5];
+    args[0] = (uint32_t) cv;
+    return syscall(427, args);
+}
+
+
+int condvar_free(struct condvar_t* cv) {
+    uint32_t args[5];
+    args[0] = (uint32_t) cv;
+    return syscall(428, args);
+}

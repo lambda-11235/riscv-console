@@ -33,7 +33,14 @@ int video_clear_text(void) {
 
 
 int video_write_text(int x, int y, char* str) {
-    strcpy((char*) (TEXT_DATA + x + TEXT_WIDTH*y), str);
+    char* dest = (char*) (TEXT_DATA + x + TEXT_WIDTH*y);
+
+    while (*str != 0) {
+        *dest = *str;
+        dest++;
+        str++;
+    }
+    
     return 0;
 }
 
