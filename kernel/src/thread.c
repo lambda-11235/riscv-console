@@ -63,6 +63,13 @@ int preemption_enable;
 
 
 
+int thread_queue_init(struct thread_queue* queue) {
+    queue->head = NULL;
+    queue->tail = NULL;
+    return 0;
+}
+
+
 int thread_queue_push(struct thread_queue* queue, struct thread* thread) {
     thread->next = NULL;
 
@@ -121,16 +128,14 @@ void thread_init(void) {
     // Init thread is always 0.
     threads[0].stack_base = NULL;
     threads[0].flags = T_USED;
-    threads[0].join_queue.head = NULL;
-    threads[0].join_queue.tail = NULL;
+    thread_queue_init(&threads[0].join_queue);
 
     running_thread = &threads[0];
 
     // Setup idle thread and make it ready.
     idle_thread.stack_base = NULL;
     idle_thread.flags = T_USED;
-    idle_thread.join_queue.head = NULL;
-    idle_thread.join_queue.tail = NULL;
+    thread_queue_init(&idle_thread.join_queue);
     idle_thread.ctx.mepc = (uint32_t) thread_idle;
 
     thread_queue_push(&ready_threads, &idle_thread);
@@ -209,8 +214,7 @@ thread_t thread_create_from_ctx(int (*func)(void*), void* data,
 
     new_thread->stack_base = mem_alloc(STACK_SIZE);
     new_thread->flags = T_USED;
-    new_thread->join_queue.head = NULL;
-    new_thread->join_queue.tail = NULL;
+    thread_queue_init(&new_thread->join_queue);
 
     // Inherit whatever context that spawned thread, and modify what
     // needs to change.
@@ -277,3 +281,73 @@ int thread_sleep_us(uint64_t* period) {
 
     return 0;
 }
+
+
+
+
+struct mutex_t {
+    int locked;
+    struct thread_queue waiting_threads;
+};
+
+
+struct mutex_t* mutex_new(void) {
+    struct mutex_t* m = mem_alloc(sizeof(struct mutex_t));
+    m->locked = 0;
+    thread_queue_init(&m->waiting_threads);
+
+    return m;
+}
+
+
+int mutex_lock(struct mutex_t* m) {
+    if (m->locked) {
+        thread_queue_push(&m->waiting_threads, running_thread);
+        running_thread = thread_queue_pop(&ready_threads);
+    } else {
+        m->locked = 1;
+    }
+
+    return 0;
+}
+
+
+int mutex_unlock(struct mutex_t* m) {
+    if (thread_queue_empty(&m->waiting_threads)) {
+        m->locked = 0;
+    } else {
+        struct thread* t = thread_queue_pop(&m->waiting_threads);
+        thread_queue_push(&ready_threads, t);
+    }
+
+    return 0;
+}
+
+
+int mutex_free(struct mutex_t* m) {
+    if (m->locked || !thread_queue_empty(&m->waiting_threads)) {
+        return -1;
+    } else {
+        mem_free(m);
+        return 0;
+    }
+}
+
+
+
+
+/*
+struct condvar_t* condvar_new(void);
+
+
+int condvar_wait(struct condvar_t* cv, struct mutex_t* m);
+
+
+int condvar_signal(struct condvar_t* cv);
+
+
+int condvar_broadcast(struct condvar_t* cv);
+
+
+int condvar_free(struct condvar_t* cv);
+*/

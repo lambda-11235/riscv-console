@@ -13,11 +13,22 @@
 char bufA[256];
 char bufB[256];
 
+struct mutex_t* lock;
+volatile int shared;
+
 
 void video_handler(int sig) {
-    // TODO: add locks
+    char buf[256];
+    
+    mutex_lock(lock);
+
     video_write_text(0, 0, bufA);
     video_write_text(0, 1, bufB);
+
+    sprintf(buf, "Shared: %d", shared);
+    video_write_text(0, 2, buf);
+
+    mutex_unlock(lock);
 }
 
 
@@ -26,8 +37,14 @@ int thread_b(void* data) {
     int cnt = 0;
 
     while (1) {
+        mutex_lock(lock);
+        
         cnt = (cnt + 1)%256;
         sprintf(bufB, "Thread B: %d", cnt);
+        shared++;
+
+        mutex_unlock(lock);
+        
         thread_sleep_us(&tm);
     }
 
@@ -39,6 +56,8 @@ int main() {
     uint64_t tm = 1000000;
     int cnt = 0;
 
+    lock = mutex_new();
+    
     video_set_mode(TEXT_MODE);
     video_clear_text();
     signal_register(3, video_handler);
@@ -49,8 +68,14 @@ int main() {
     }
 
     while (1) {
+        mutex_lock(lock);
+
         cnt = (cnt + 1)%256;
         sprintf(bufA, "Thread A: %d", cnt);
+        shared++;
+
+        mutex_unlock(lock);
+
         thread_sleep_us(&tm);
     }
 

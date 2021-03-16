@@ -203,6 +203,19 @@ void c_syscall_handler(void) {
         ret = thread_sleep_us((uint64_t*) a1);
         break;
 
+    case 404:
+        ret = (uint32_t) mutex_new();
+        break;
+    case 405:
+        ret = mutex_lock((struct mutex_t*) a1);
+        break;
+    case 406:
+        ret = mutex_unlock((struct mutex_t*) a1);
+        break;
+    case 407:
+        ret = mutex_free((struct mutex_t*) a1);
+        break;
+
     // Signals
     case 512:
         ret = signal_register(a1, (void (*)(int)) a2);

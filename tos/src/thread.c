@@ -45,3 +45,31 @@ int thread_sleep_us(uint64_t* period) {
     args[0] = (uint32_t) period;
     return syscall(389, args);
 }
+
+
+
+
+struct mutex_t* mutex_new(void) {
+    uint32_t args[5];
+    return (struct mutex_t*) syscall(404, args);
+}
+
+
+int mutex_lock(struct mutex_t* m) {
+    uint32_t args[5];
+    args[0] = (uint32_t) m;
+    return syscall(405, args);
+}
+
+
+int mutex_unlock(struct mutex_t* m) {
+    uint32_t args[5];
+    args[0] = (uint32_t) m;
+    return syscall(406, args);
+}
+
+int mutex_free(struct mutex_t* m) {
+    uint32_t args[5];
+    args[0] = (uint32_t) m;
+    return syscall(407, args);
+}
