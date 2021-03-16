@@ -52,6 +52,7 @@ void on_cmd(int sig) {
 
 void video_handler(int sig) {
     char buf[256];
+    video_clear_text();
 
     F(mutex_lock(lockA));
 
